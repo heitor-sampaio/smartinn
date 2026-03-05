@@ -4,20 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { startOfMonth, endOfMonth, min, max, differenceInCalendarDays, startOfDay, endOfDay, startOfYear, endOfYear, eachMonthOfInterval, format, subYears, startOfWeek, endOfWeek } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
-async function requireAuth() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autorizado')
-
-    const usuario = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        select: { pousadaId: true }
-    })
-
-    if (!usuario) throw new Error('Usuário não encontrado')
-    return { user, pousadaId: usuario.pousadaId }
-}
+import { requireAuth } from '@/lib/auth'
 
 export async function getDashboardMetrics() {
     try {

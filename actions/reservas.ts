@@ -3,22 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-
-async function requireAuth() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autorizado')
-
-    const usuario = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        select: { id: true, pousadaId: true, perfil: true }
-    })
-
-    if (!usuario) throw new Error(`Usuário não encontrado no sistema: Supabase ID = ${user.id}, Email = ${user.email}`)
-
-    // Retorna também o ID interno do usuário logado pra rastrear "Quem fez o checkin"
-    return { user, usuarioId: usuario.id, pousadaId: usuario.pousadaId, perfil: usuario.perfil }
-}
+import { requireAuth } from '@/lib/auth'
 
 export async function getReservas() {
     try {

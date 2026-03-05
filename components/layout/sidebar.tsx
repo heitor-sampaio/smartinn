@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
     LayoutDashboard,
-    BedDouble,
     Users,
     CalendarDays,
     Settings,
@@ -12,7 +12,8 @@ import {
     ClipboardList,
     CircleDollarSign,
     LineChart,
-    Package
+    Package,
+    BedDouble
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -36,10 +37,16 @@ export function Sidebar() {
 
     return (
         <div className="hidden border-r bg-muted/40 md:flex md:flex-col w-64 min-h-screen">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <BedDouble className="h-6 w-6" />
-                    <span className="">PousadaApp</span>
+            <div className="flex h-16 items-center border-b px-4 lg:px-6">
+                <Link href="/dashboard" className="flex items-center">
+                    <Image
+                        src="/smartinn-logo.png"
+                        alt="SmartInn"
+                        width={105}
+                        height={30}
+                        className="h-7 w-auto object-contain dark:invert"
+                        priority
+                    />
                 </Link>
             </div>
             <div className="flex-1">

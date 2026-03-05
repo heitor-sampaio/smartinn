@@ -3,23 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-
-// Helper de Autenticação e Segurança (Mesma lógica das outras server actions)
-async function requireAuth() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new Error('Não autorizado')
-
-    const usuario = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        select: { pousadaId: true, perfil: true }
-    })
-
-    if (!usuario) throw new Error('Usuário não encontrado no sistema')
-
-    return { user, pousadaId: usuario.pousadaId, perfil: usuario.perfil }
-}
+import { requireAuth } from '@/lib/auth'
 
 export async function getProdutosList() {
     try {
