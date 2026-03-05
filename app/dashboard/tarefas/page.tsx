@@ -3,7 +3,7 @@ import { getAcomodacoesList } from '@/actions/reservas' // Reuso de listagem oti
 import { TarefasClient } from './tarefas-client'
 
 export const metadata = {
-    title: 'Tarefas e Manutenção | PousadaApp'
+    title: 'Tarefas e Manutenção | SmartInn'
 }
 
 export default async function TarefasPage() {

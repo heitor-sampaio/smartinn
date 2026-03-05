@@ -37,6 +37,11 @@ const configSchema = z.object({
     horaCheckin: z.string().min(5, "Formato HH:MM"),
     horaCheckout: z.string().min(5, "Formato HH:MM"),
     taxaCartao: z.number().min(0).max(100),
+    taxaImpostos: z.number().min(0).max(100),
+    taxaBooking: z.number().min(0).max(100),
+    taxaAirbnb: z.number().min(0).max(100),
+    taxaDecolar: z.number().min(0).max(100),
+    taxaExpedia: z.number().min(0).max(100),
 
     nome: z.string().min(2, "Nome curto demais"),
     telefone: z.string().optional(),
@@ -81,6 +86,11 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
             horaCheckin: initialData?.horaCheckin || '14:00',
             horaCheckout: initialData?.horaCheckout || '12:00',
             taxaCartao: Number(initialData?.taxaCartao) || 0,
+            taxaImpostos: Number(initialData?.taxaImpostos) || 0,
+            taxaBooking: Number(initialData?.taxaBooking) || 0,
+            taxaAirbnb: Number(initialData?.taxaAirbnb) || 0,
+            taxaDecolar: Number(initialData?.taxaDecolar) || 0,
+            taxaExpedia: Number(initialData?.taxaExpedia) || 0,
             cep: initialData?.cep || '',
             endereco: initialData?.endereco || '',
             cidade: initialData?.cidade || '',
@@ -256,6 +266,46 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
                                         </FormItem>
                                     )}
                                 />
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Comissões de OTAs e Motores de Reserva</CardTitle>
+                                <CardDescription>
+                                    Percentual de comissão cobrado por cada canal de distribuição. Usados nos cálculos de receita líquida nos indicadores.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2">
+                                {[
+                                    { name: 'taxaBooking' as const, label: 'Booking.com' },
+                                    { name: 'taxaAirbnb' as const, label: 'Airbnb' },
+                                    { name: 'taxaDecolar' as const, label: 'Decolar' },
+                                    { name: 'taxaExpedia' as const, label: 'Expedia' },
+                                ].map(({ name, label }) => (
+                                    <FormField
+                                        key={name}
+                                        control={form.control}
+                                        name={name}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{label} (%)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        placeholder="0.00"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
                             </CardContent>
                         </Card>
 
@@ -643,10 +693,37 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
                             <CardHeader>
                                 <CardTitle>Configurações Fiscais</CardTitle>
                                 <CardDescription>
-                                    Configurações para emissão de notas fiscais e integração com a prefeitura.
+                                    Parâmetros fiscais utilizados nos cálculos de indicadores e relatórios financeiros.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="taxaImpostos"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Total de Impostos (%)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        max="100"
+                                                        placeholder="0.00"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Percentual total de impostos incidentes sobre a receita (ex: ISS, PIS, COFINS). Usado para calcular o lucro líquido nos indicadores.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
                                 <div className="p-4 bg-muted/50 border rounded-lg text-center">
                                     <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                                     <h4 className="text-lg font-medium mb-2">Emissão de NFS-e Automática</h4>

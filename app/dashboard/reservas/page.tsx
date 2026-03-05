@@ -4,7 +4,7 @@ import { getAjustes } from '@/actions/configuracoes'
 import { ReservasClient } from './reservas-client'
 
 export const metadata = {
-    title: 'Reservas - PousadaApp',
+    title: 'Reservas - SmartInn',
 }
 
 export default async function ReservasPage() {

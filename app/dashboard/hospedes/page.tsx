@@ -2,7 +2,7 @@ import { getHospedes } from '@/actions/hospedes'
 import { HospedesClient } from './hospedes-client'
 
 export const metadata = {
-    title: 'Hóspedes - PousadaApp',
+    title: 'Hóspedes - SmartInn',
 }
 
 export default async function HospedesPage() {

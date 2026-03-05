@@ -3,7 +3,7 @@ import { FinanceiroClient } from './financeiro-client'
 import { MonthSelector } from './month-selector'
 
 export const metadata = {
-    title: 'Financeiro - PousadaApp',
+    title: 'Financeiro - SmartInn',
 }
 
 export default async function FinanceiroPage({

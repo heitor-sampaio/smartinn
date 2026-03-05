@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function CadastroPage() {
     const router = useRouter()
@@ -22,8 +23,7 @@ export default function CadastroPage() {
             toast.error(result.error)
             setIsLoading(false)
         } else if (result?.success) {
-            toast.success(result.success)
-            router.push('/login')
+            router.push(`/verificar-email?email=${encodeURIComponent(formData.get('email') as string)}`)
         }
     }
 
@@ -31,9 +31,19 @@ export default function CadastroPage() {
         <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="space-y-1 text-center">
+                    <div className="flex justify-center mb-2">
+                        <Image
+                            src="/smartinn-logo.png"
+                            alt="SmartInn"
+                            width={160}
+                            height={45}
+                            className="h-10 w-auto object-contain"
+                            priority
+                        />
+                    </div>
                     <CardTitle className="text-2xl font-bold tracking-tight">Criar Conta</CardTitle>
                     <CardDescription>
-                        Experimente o PousadaApp por 30 dias gratuitamente.
+                        Experimente o SmartInn por 30 dias gratuitamente.
                     </CardDescription>
                 </CardHeader>
                 <form action={onSubmit}>

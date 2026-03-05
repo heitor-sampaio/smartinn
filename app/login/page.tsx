@@ -6,9 +6,10 @@ import { signIn } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -32,7 +33,16 @@ export default function LoginPage() {
         <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold tracking-tight">PousadaApp</CardTitle>
+                    <div className="flex justify-center mb-2">
+                        <Image
+                            src="/smartinn-logo.png"
+                            alt="SmartInn"
+                            width={160}
+                            height={45}
+                            className="h-10 w-auto object-contain"
+                            priority
+                        />
+                    </div>
                     <CardDescription>
                         Entre com suas credenciais para gerenciar sua pousada.
                     </CardDescription>

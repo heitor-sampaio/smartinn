@@ -2,7 +2,7 @@ import { getAcomodacoes } from '@/actions/acomodacoes'
 import { AcomodacoesClient } from './acomodacoes-client'
 
 export const metadata = {
-    title: 'Acomodações - PousadaApp',
+    title: 'Acomodações - SmartInn',
 }
 
 export default async function AcomodacoesPage() {

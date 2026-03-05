@@ -32,6 +32,11 @@ model Pousada {
   horaCheckout      String                 @default("12:00")
   inscricaoEstadual String?
   taxaCartao        Decimal                @default(0) @db.Decimal(5, 2)
+  taxaImpostos      Decimal                @default(0) @db.Decimal(5, 2)
+  taxaBooking       Decimal                @default(0) @db.Decimal(5, 2)
+  taxaAirbnb        Decimal                @default(0) @db.Decimal(5, 2)
+  taxaDecolar       Decimal                @default(0) @db.Decimal(5, 2)
+  taxaExpedia       Decimal                @default(0) @db.Decimal(5, 2)
   senhaEquipe       String?
   linkEquipe        String                 @unique @default(uuid())
 

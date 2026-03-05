@@ -3,7 +3,7 @@ import { getProdutosList } from "@/actions/produtos"
 import { ProdutosClient } from "./produtos-client"
 
 export const metadata: Metadata = {
-    title: "Produtos e Serviços | PousadaApp",
+    title: "Produtos e Serviços | SmartInn",
     description: "Gerencie produtos, conveniência e serviços da sua pousada.",
 }
 
