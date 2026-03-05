@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, BedDouble, LogOut } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
 import { NAVIGATION_LINKS } from './sidebar'
 import { signOut } from '@/actions/auth'
 
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,47 +23,92 @@ import { cn } from '@/lib/utils'
 export function Header({ email }: { email?: string }) {
     const pathname = usePathname()
 
-    // Extrai as iniciais do e-mail para o Avatar
     const getInitials = (email?: string) => {
-        if (!email) return 'PA'
+        if (!email) return 'SI'
         return email.substring(0, 2).toUpperCase()
     }
 
     return (
         <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 justify-between md:justify-end">
-            {/* Mobile Sidebar (Sheet) */}
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-                        <Menu className="h-5 w-5" />
-                        <span className="sr-only">Abrir menu</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                        <BedDouble className="h-6 w-6" />
-                        <span>PousadaApp</span>
-                    </Link>
-                    <nav className="grid gap-2 mt-6 text-lg font-medium">
-                        {NAVIGATION_LINKS.map((link) => {
-                            const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className={cn(
-                                        "flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                                        isActive && "bg-muted text-foreground"
-                                    )}
-                                >
-                                    <link.icon className="h-5 w-5" />
-                                    {link.text}
+            {/* Mobile: menu hambúrguer + logo centralizada */}
+            <div className="flex items-center gap-3 md:hidden">
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" size="icon" className="shrink-0">
+                            <Menu className="h-5 w-5" />
+                            <span className="sr-only">Abrir menu</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="flex flex-col p-0 w-72">
+                        {/* Header do drawer */}
+                        <div className="flex h-16 items-center border-b px-4">
+                            <SheetClose asChild>
+                                <Link href="/dashboard" className="flex items-center">
+                                    <Image
+                                        src="/smartinn-logo.png"
+                                        alt="SmartInn"
+                                        width={120}
+                                        height={34}
+                                        className="h-7 w-auto object-contain dark:invert"
+                                        priority
+                                    />
                                 </Link>
-                            )
-                        })}
-                    </nav>
-                </SheetContent>
-            </Sheet>
+                            </SheetClose>
+                        </div>
+
+                        {/* Links de navegação */}
+                        <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
+                            {NAVIGATION_LINKS.map((link) => {
+                                const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
+                                return (
+                                    <SheetClose asChild key={link.href}>
+                                        <Link
+                                            href={link.href}
+                                            className={cn(
+                                                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                                                isActive
+                                                    ? "bg-muted text-primary"
+                                                    : "text-muted-foreground hover:text-primary hover:bg-muted/50"
+                                            )}
+                                        >
+                                            <link.icon className="h-5 w-5 shrink-0" />
+                                            {link.text}
+                                        </Link>
+                                    </SheetClose>
+                                )
+                            })}
+                        </nav>
+
+                        {/* Footer do drawer */}
+                        <div className="border-t p-4 flex items-center justify-center">
+                            <Link
+                                href="https://www.archlabs.com.br"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="opacity-70 hover:opacity-100 transition-opacity dark:invert"
+                            >
+                                <img
+                                    src="/arch-logo.png"
+                                    alt="Arch Sistemas Inteligentes"
+                                    className="w-14 h-auto object-contain"
+                                />
+                            </Link>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {/* Logo centralizada no header mobile */}
+                <Link href="/dashboard">
+                    <Image
+                        src="/smartinn-logo.png"
+                        alt="SmartInn"
+                        width={100}
+                        height={28}
+                        className="h-6 w-auto object-contain dark:invert"
+                        priority
+                    />
+                </Link>
+            </div>
 
             {/* User Profile Dropdown */}
             <DropdownMenu>

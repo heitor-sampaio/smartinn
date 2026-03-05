@@ -19,9 +19,9 @@ export default async function HospedesPage() {
 
     // Passando os hóspedes hidratados do banco pro componente cliente renderizar a tabela
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Hóspedes</h2>
+        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl md:text-3xl font-bold tracking-tight">Hóspedes</h2>
             </div>
             <HospedesClient initialData={data || []} />
         </div>

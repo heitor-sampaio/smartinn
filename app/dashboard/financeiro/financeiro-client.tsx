@@ -141,16 +141,17 @@ export function FinanceiroClient({ initialData, mesAtual, anoAtual }: Financeiro
                 </div>
             </div>
 
-            <div className="flex items-center justify-between">
-                <div className="flex flex-1 items-center space-x-2">
+            <div className="flex flex-col gap-3">
+                {/* Linha 1: Busca e filtro de forma de pagamento */}
+                <div className="flex flex-col sm:flex-row gap-2">
                     <Input
-                        placeholder="Buscar lancamento ou tipo..."
+                        placeholder="Buscar lançamento ou tipo..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="max-w-sm"
+                        className="flex-1"
                     />
                     <select
-                        className="flex h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         value={formaPagamentoFiltro}
                         onChange={(e) => setFormaPagamentoFiltro(e.target.value)}
                     >
@@ -163,30 +164,32 @@ export function FinanceiroClient({ initialData, mesAtual, anoAtual }: Financeiro
                         <option value="TRANSFERENCIA">Transferência</option>
                     </select>
                 </div>
-                <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Novo Lançamento
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Registrar Movimento</DialogTitle>
-                            <DialogDescription>
-                                Entre com dados de Receitas ou Despesas
-                            </DialogDescription>
-                        </DialogHeader>
-                        {/* Formulário injetado aqui */}
-                        <LancamentoForm onSuccess={() => {
-                            setIsOpen(false)
-                            router.refresh()
-                        }} />
-                    </DialogContent>
-                </Dialog>
+                {/* Linha 2: Botão novo lançamento */}
+                <div className="flex justify-end">
+                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Novo Lançamento
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Registrar Movimento</DialogTitle>
+                                <DialogDescription>
+                                    Entre com dados de Receitas ou Despesas
+                                </DialogDescription>
+                            </DialogHeader>
+                            <LancamentoForm onSuccess={() => {
+                                setIsOpen(false)
+                                router.refresh()
+                            }} />
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
-            <div className="rounded-md border">
-                <Table>
+            <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[640px]">
                     <TableHeader>
                         <TableRow>
                             <TableHead>Data</TableHead>

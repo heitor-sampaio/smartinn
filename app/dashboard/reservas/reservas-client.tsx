@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { ReservaForm } from './reserva-form';
 import { CheckoutModal } from './checkout-modal';
 import { MapaReservasClient } from './mapa-reservas-client';
+import { MapaReservasMobile } from './mapa-reservas-mobile';
 import { ReservaDetalhesModal } from './reserva-detalhes-modal';
 import { fazerCheckin, cancelarReserva, confirmarReserva } from '@/actions/reservas';
 
@@ -90,14 +91,28 @@ export function ReservasClient({
             </div>
 
             <div className="pt-2">
-                <MapaReservasClient
-                    reservas={initialData}
-                    acomodacoes={acomodacoesList}
-                    onReservaClick={(id) => {
-                        setEditingReservaId(id);
-                        setIsDialogOpen(true);
-                    }}
-                />
+                {/* Mobile: agenda em lista */}
+                <div className="md:hidden">
+                    <MapaReservasMobile
+                        reservas={initialData}
+                        acomodacoes={acomodacoesList}
+                        onReservaClick={(id) => {
+                            setEditingReservaId(id);
+                            setIsDialogOpen(true);
+                        }}
+                    />
+                </div>
+                {/* Desktop: grade de calendário */}
+                <div className="hidden md:block">
+                    <MapaReservasClient
+                        reservas={initialData}
+                        acomodacoes={acomodacoesList}
+                        onReservaClick={(id) => {
+                            setEditingReservaId(id);
+                            setIsDialogOpen(true);
+                        }}
+                    />
+                </div>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

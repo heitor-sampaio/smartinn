@@ -73,7 +73,60 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
                 </Button>
             </div>
 
-            <div className="rounded-md border">
+            {/* MOBILE: cards empilhados (sem scroll lateral) */}
+            <div className="md:hidden space-y-2">
+                {initialData.length === 0 ? (
+                    <div className="rounded-md border bg-card p-8 text-center text-muted-foreground text-sm">
+                        Nenhuma acomodação cadastrada. Comece adicionando seu primeiro quarto!
+                    </div>
+                ) : (
+                    initialData.map((quarto) => (
+                        <div key={quarto.id} className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate">{quarto.nome}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{quarto.tipo} · {quarto.capacidade} pessoa{quarto.capacidade > 1 ? 's' : ''}</p>
+                                {quarto.valorDiaria && (
+                                    <p className="text-xs text-muted-foreground">
+                                        R$ {Number(quarto.valorDiaria).toFixed(2).replace('.', ',')} / noite
+                                    </p>
+                                )}
+                                <div className="mt-2">
+                                    <Badge
+                                        className={`cursor-pointer text-xs ${getStatusColor(quarto.status)}`}
+                                        onClick={() => handleToggleStatus(quarto.id, quarto.status)}
+                                        title="Toque para alternar status"
+                                    >
+                                        {quarto.status}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEdit(quarto)}
+                                    title="Editar"
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleDelete(quarto.id)}
+                                    title="Excluir"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* DESKTOP: tabela completa */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -112,47 +165,22 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => openEdit(quarto)}
-                                                className="hidden sm:flex"
-                                            >
+                                            <Button variant="outline" size="sm" onClick={() => openEdit(quarto)}>
                                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => openEdit(quarto)}
-                                                className="sm:hidden"
-                                                title="Editar"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-
-                                            <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDelete(quarto.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 hidden sm:flex"
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(quarto.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:hidden"
-                                                title="Excluir"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             ))
                         )}
-
                     </TableBody>
                 </Table>
             </div>

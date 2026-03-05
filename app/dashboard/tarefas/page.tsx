@@ -18,17 +18,17 @@ export default async function TarefasPage() {
     const acomodacoes = acomodacoesResponse.data || []
 
     return (
-        <div className="flex flex-col gap-6 p-6 h-[calc(100vh-4rem)]">
+        <div className="flex flex-col gap-4 md:gap-6 p-3 md:p-6 md:h-[calc(100vh-4rem)]">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Tarefas da Equipe</h1>
-                <p className="text-muted-foreground mt-2">
+                <h1 className="text-xl md:text-3xl font-bold tracking-tight">Tarefas da Equipe</h1>
+                <p className="text-muted-foreground mt-1 text-sm">
                     Painel operacional para camareiras e manutenção. Controle Limpeza, Reparos e Preparação.
                 </p>
             </div>
 
-            {/* O Painel client-side ocupará o restante da altura da tela */}
-            <div className="flex-1 overflow-hidden">
-                <TarefasClient initialData={tarefas} acomodacoesList={acomodacoes} pousadaId={pousadaId} />
+            {/* Mobile: sem overflow-hidden para que colunas cresçam. Desktop: mantém contenção */}
+            <div className="flex-1 md:overflow-hidden">
+                <TarefasClient initialData={tarefas} acomodacoesList={acomodacoes} pousadaId={pousadaId ?? undefined} />
             </div>
         </div>
     )

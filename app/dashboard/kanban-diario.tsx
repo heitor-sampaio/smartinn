@@ -24,7 +24,7 @@ export function KanbanDiario({
 }) {
     // Componente interno para as colunas do Kanban
     const KanbanColumn = ({ title, icon, items, colorClass }: KanbanColumnProps) => (
-        <div className="flex flex-col bg-muted/30 rounded-lg border p-4 min-h-[400px]">
+        <div className="flex flex-col bg-muted/30 rounded-lg border p-3 md:p-4 min-h-[180px] md:min-h-[400px]">
             <div className="flex items-center justify-between mb-4 border-b pb-2">
                 <div className="flex items-center space-x-2 font-semibold">
                     {icon}
@@ -73,13 +73,12 @@ export function KanbanDiario({
     )
 
     return (
-        <div className="mt-8 space-y-4">
-            <h3 className="text-xl font-bold tracking-tight">Operações de Hoje</h3>
+        <div className="mt-4 md:mt-8 space-y-4">
+            <h3 className="text-lg md:text-xl font-bold tracking-tight">Operações de Hoje</h3>
             <p className="text-sm text-muted-foreground mb-4">
                 Quadro de movimentações previstas para a data atual.
             </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <KanbanColumn
                     title="Saídas (Check-out)"
                     icon={<LogOut className="h-5 w-5 text-slate-600" />}

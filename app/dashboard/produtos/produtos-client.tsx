@@ -74,7 +74,7 @@ export function ProdutosClient({ initialData }: { initialData: any[] }) {
                     </div>
                 </div>
 
-                <div className="flex overflow-x-auto gap-2 w-full sm:w-auto pb-2 sm:pb-0 scrollbar-hide">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {['TODAS', 'FRIGOBAR', 'RESTAURANTE', 'PASSEIO', 'SERVICO'].map((cat) => (
                         <Button
                             key={cat}
@@ -104,34 +104,34 @@ export function ProdutosClient({ initialData }: { initialData: any[] }) {
 
                     return (
                         <Card key={item.id} className={`overflow-hidden transition-all ${!item.ativo ? 'opacity-60 saturate-50' : ''}`}>
-                            <CardContent className="p-5 flex flex-col h-full relative">
-                                <div className="flex justify-between items-start mb-4">
-                                    <Badge variant="outline" className={`flex items-center gap-1 border-0 ${cfg.color}`}>
+                            <CardContent className="p-3 md:p-5 flex flex-col h-full relative">
+                                <div className="flex justify-between items-start mb-2 md:mb-4">
+                                    <Badge variant="outline" className={`flex items-center gap-1 border-0 text-xs ${cfg.color}`}>
                                         <Icon className="w-3 h-3" />
                                         {cfg.label}
                                     </Badge>
-                                    <div className="text-lg font-bold">
+                                    <div className="text-base md:text-lg font-bold">
                                         R$ {Number(item.preco).toFixed(2).replace('.', ',')}
                                     </div>
                                 </div>
 
-                                <h3 className="font-semibold text-lg line-clamp-1">{item.nome}</h3>
+                                <h3 className="font-semibold text-sm md:text-lg line-clamp-1">{item.nome}</h3>
                                 {item.descricao && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2 min-h-10">
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 md:min-h-10">
                                         {item.descricao}
                                     </p>
                                 )}
 
-                                <div className="mt-auto pt-4 flex gap-2 w-full items-center justify-between border-t border-border/50">
+                                <div className="mt-auto pt-2 md:pt-4 flex gap-2 w-full items-center justify-between border-t border-border/50">
                                     <div className="text-xs text-muted-foreground font-medium">
                                         {item.estoque !== null ? `Estoque: ${item.estoque}` : ''}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 md:gap-2">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-xs px-2 h-8"
+                                            className="text-xs px-2 h-7"
                                             onClick={() => handleToggleStatus(item.id, item.ativo)}
                                         >
                                             {item.ativo ? 'Desativar' : 'Reativar'}
@@ -140,7 +140,7 @@ export function ProdutosClient({ initialData }: { initialData: any[] }) {
                                         <Button
                                             variant="secondary"
                                             size="sm"
-                                            className="text-xs px-3 h-8"
+                                            className="text-xs px-2 h-7"
                                             onClick={() => openEditDialog(item)}
                                         >
                                             Editar
@@ -149,7 +149,7 @@ export function ProdutosClient({ initialData }: { initialData: any[] }) {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="text-xs text-destructive hover:bg-destructive/10 px-2 h-8"
+                                            className="text-xs text-destructive hover:bg-destructive/10 px-2 h-7"
                                             onClick={() => {
                                                 if (window.confirm("Deseja realmente excluir este produto? Histórico relacionado pode ser perdido.")) {
                                                     handleDelete(item.id)

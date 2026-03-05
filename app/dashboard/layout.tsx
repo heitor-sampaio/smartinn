@@ -27,15 +27,15 @@ export default async function DashboardLayout({
     const modoTema = dbUser?.pousada?.modoTema || 'system';
 
     return (
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] overflow-x-hidden">
             <ThemeSync forcedTheme={modoTema} />
             {/* Sidebar fixo para telas md+ */}
             <Sidebar />
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
                 {/* Header no topo */}
                 <Header email={user.email} />
                 {/* Conteúdo dinâmico (páginas) */}
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 min-w-0 overflow-x-hidden">
                     {children}
                 </main>
             </div>

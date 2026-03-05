@@ -66,7 +66,7 @@ export function DashboardIndicators({ data }: { data: any | null }) {
     )
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden">
             {/* Bloco 1: Desempenho de Hospedagem */}
             <h3 className="text-lg font-medium pt-2 border-b pb-2">Desempenho de Hospedagem</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -119,9 +119,9 @@ export function DashboardIndicators({ data }: { data: any | null }) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[250px] w-full">
+                        <div className="h-[250px] w-full overflow-hidden">
                             <ChartContainer config={chartConfigBookings} className="h-full w-full">
-                                <BarChart accessibilityLayer data={data.bookingsPerMonthData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                <BarChart accessibilityLayer data={data.bookingsPerMonthData} margin={{ top: 20, right: 0, left: -30, bottom: 0 }}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis
                                         dataKey="month"
@@ -218,9 +218,9 @@ export function DashboardIndicators({ data }: { data: any | null }) {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[350px] w-full">
+                    <div className="h-[300px] md:h-[350px] w-full overflow-hidden">
                         <ChartContainer config={chartConfigReceita} className="h-full w-full">
-                            <AreaChart accessibilityLayer data={data.revenueChartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
+                            <AreaChart accessibilityLayer data={data.revenueChartData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis
                                     dataKey="month"
@@ -232,7 +232,7 @@ export function DashboardIndicators({ data }: { data: any | null }) {
                                     tickLine={false}
                                     axisLine={false}
                                     tickFormatter={(value) => `R$${value}`}
-                                    width={80}
+                                    width={60}
                                 />
                                 <ChartTooltip
                                     cursor={false}

@@ -27,9 +27,9 @@ export default async function FinanceiroPage({
     }
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0 pb-4">
-                <h2 className="text-3xl font-bold tracking-tight">Caixa e Lançamentos</h2>
+        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4">
+                <h2 className="text-xl md:text-3xl font-bold tracking-tight">Caixa e Lançamentos</h2>
                 <MonthSelector mesAtual={mes} anoAtual={ano} />
             </div>
 

@@ -210,15 +210,15 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
     }
 
     const Column = ({ title, count, tasks, badgeColor }: any) => (
-        <div className="flex flex-col bg-muted/50 rounded-lg border h-full overflow-hidden">
+        <div className="flex flex-col bg-muted/50 rounded-lg border md:h-full md:overflow-hidden">
             <div className={`p-3 border-b bg-background/50 flex items-center justify-between font-medium`}>
                 <span>{title}</span>
                 <Badge variant="secondary" className={`${badgeColor}`}>{count}</Badge>
             </div>
-            {/* Area Scrolavel dos Cards */}
-            <div className="p-3 flex-1 overflow-y-auto space-y-3">
+            {/* Mobile: sem overflow, cresce com o conteúdo. Desktop: scroll interno */}
+            <div className="p-3 space-y-3 md:flex-1 md:overflow-y-auto">
                 {tasks.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2 p-4 text-center">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-2 p-4 text-center py-8">
                         <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
                         <p className="text-sm">Nada por aqui</p>
                     </div>
@@ -239,8 +239,8 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
                 </div>
             )}
 
-            {/* Layout Flex para Mobile (Column) e Desktop (Grid com Colunas lado a lado) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 flex-1 min-h-0">
+            {/* Mobile: colunas empilhadas crescendo com o conteúdo. Desktop: grid lado a lado fixo */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 md:flex-1 md:min-h-0">
 
                 <Column
                     title="Pendente"

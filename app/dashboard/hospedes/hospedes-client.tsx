@@ -73,14 +73,66 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-card">
+            {/* MOBILE: lista de cards (sem scroll lateral) */}
+            <div className="md:hidden space-y-2">
+                {filteredData.length === 0 ? (
+                    <div className="rounded-md border bg-card p-8 text-center text-muted-foreground text-sm">
+                        {searchTerm ? 'Nenhum hóspede encontrado na busca.' : 'Sua lista de hóspedes está vazia.'}
+                    </div>
+                ) : (
+                    filteredData.map((hospede) => (
+                        <div
+                            key={hospede.id}
+                            className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3"
+                        >
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate">{hospede.nome}</p>
+                                {hospede.telefone && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">{hospede.telefone}</p>
+                                )}
+                                {hospede.email && (
+                                    <p className="text-xs text-muted-foreground truncate">{hospede.email}</p>
+                                )}
+                                {hospede.cidade && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {hospede.cidade}{hospede.estado ? `/${hospede.estado}` : ''}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEdit(hospede)}
+                                    title="Ver Ficha"
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => handleDelete(hospede.id)}
+                                    title="Excluir"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* DESKTOP: tabela completa */}
+            <div className="hidden md:block rounded-md border bg-card">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Nome</TableHead>
-                            <TableHead className="hidden md:table-cell">Contato</TableHead>
+                            <TableHead>Contato</TableHead>
                             <TableHead className="hidden lg:table-cell">Documento</TableHead>
-                            <TableHead className="hidden md:table-cell">Cidade</TableHead>
+                            <TableHead>Cidade</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -95,57 +147,32 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
                             filteredData.map((hospede) => (
                                 <TableRow key={hospede.id}>
                                     <TableCell className="font-medium">{hospede.nome}</TableCell>
-                                    <TableCell className="hidden md:table-cell">
+                                    <TableCell>
                                         <div className="text-sm">{hospede.telefone || '-'}</div>
                                         <div className="text-xs text-muted-foreground">{hospede.email || ''}</div>
                                     </TableCell>
                                     <TableCell className="hidden lg:table-cell">{hospede.cpf || 'Não informado'}</TableCell>
-                                    <TableCell className="hidden md:table-cell">
+                                    <TableCell>
                                         {hospede.cidade ? `${hospede.cidade}/${hospede.estado || ''}` : 'Não informado'}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => openEdit(hospede)}
-                                                className="hidden sm:flex"
-                                            >
+                                            <Button variant="outline" size="sm" onClick={() => openEdit(hospede)}>
                                                 <Pencil className="mr-2 h-4 w-4" /> Ver Ficha
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => openEdit(hospede)}
-                                                className="sm:hidden"
-                                                title="Ver Ficha"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-
-                                            <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDelete(hospede.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 hidden sm:flex"
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(hospede.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:hidden"
-                                                title="Excluir"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             ))
                         )}
-
                     </TableBody>
                 </Table>
             </div>

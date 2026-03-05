@@ -11,10 +11,10 @@ export default async function ProdutosPage() {
     const { data: produtos, error } = await getProdutosList()
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:gap-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Produtos e Serviços</h1>
-                <p className="text-muted-foreground mt-2">
+                <h1 className="text-xl md:text-3xl font-bold tracking-tight">Produtos e Serviços</h1>
+                <p className="text-muted-foreground mt-1 text-sm">
                     Adicione itens do frigobar, pratos do restaurante e passeios que serão ofertados aos seus clientes.
                 </p>
             </div>
