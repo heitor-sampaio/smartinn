@@ -1,0 +1,6 @@
+Error: Usuário não encontrado no sistema: Supabase ID = f0ef183c-9aca-42ec-b2e6-af03c11ffe60, Email = heitorosampaio@gmail.com
+Error: Usuário não encontrado no sistema: Supabase ID = f0ef183c-9aca-42ec-b2e6-af03c11ffe60, Email = heitorosampaio@gmail.com
+    at requireAuth (webpack-internal:///(rsc)/./actions/reservas.ts:41:25)
+    at async getReservas (webpack-internal:///(rsc)/./actions/reservas.ts:52:31)
+    at async Promise.all (index 0)
+    at async ReservasPage (webpack-internal:///(rsc)/./app/dashboard/reservas/page.tsx:18:56)

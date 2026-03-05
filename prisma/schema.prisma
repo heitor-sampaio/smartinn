@@ -1,0 +1,411 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Pousada {
+  id                String                 @id @default(uuid())
+  nome              String
+  email             String
+  telefone          String?
+  cnpj              String?
+  endereco          String?
+  cidade            String?
+  estado            String?
+  cep               String?
+  logoUrl           String?
+  descricao         String?
+  criadoEm          DateTime               @default(now())
+  atualizadoEm      DateTime               @updatedAt
+  plano             TipoPlano              @default(BASICO)
+  statusPlano       StatusPlano            @default(TRIAL)
+  trialExpiraEm     DateTime?
+  pagarmeClientId   String?
+  corTema           String?                @default("zinc")
+  modoTema          String                 @default("system")
+  horaCheckin       String                 @default("14:00")
+  horaCheckout      String                 @default("12:00")
+  inscricaoEstadual String?
+  taxaCartao        Decimal                @default(0) @db.Decimal(5, 2)
+  senhaEquipe       String?
+  linkEquipe        String                 @unique @default(uuid())
+
+  // Tarifas Dinâmicas (Acréscimos Base Diária Padrão)
+  tarifasDinamicasAtivas Boolean           @default(false)
+  tarifaFimDeSemana Decimal                @default(0) @db.Decimal(5, 2)
+  tarifaFeriado     Decimal                @default(0) @db.Decimal(5, 2)
+  tarifaTemporada   Decimal                @default(0) @db.Decimal(5, 2)
+  inicioTemporada   DateTime?
+  fimTemporada      DateTime?
+
+  acomodacoes       Acomodacao[]
+  checklistPadrao   ChecklistPadrao[]
+  hospedes          Hospede[]
+  lancamentos       LancamentoFinanceiro[]
+  reservas          Reserva[]
+  tarefas           Tarefa[]
+  tickets           TicketManutencao[]
+  usuarios          Usuario[]
+  produtos          ProdutoServico[]
+
+  @@map("pousadas")
+}
+
+model Usuario {
+  id                  String             @id @default(uuid())
+  pousadaId           String
+  supabaseId          String             @unique
+  nome                String
+  email               String
+  perfil              PerfilUsuario      @default(RECEPCIONISTA)
+  ativo               Boolean            @default(true)
+  criadoEm            DateTime           @default(now())
+  atualizadoEm        DateTime           @updatedAt
+  checkinsRealizados  Reserva[]          @relation("CheckinPor")
+  checkoutsRealizados Reserva[]          @relation("CheckoutPor")
+  tarefasAtribuidas   Tarefa[]           @relation("TarefaResponsavel")
+  ticketsAtribuidos   TicketManutencao[] @relation("TicketResponsavel")
+  pousada             Pousada            @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+
+  @@map("usuarios")
+}
+
+model Acomodacao {
+  id              String               @id @default(uuid())
+  pousadaId       String
+  nome            String
+  tipo            TipoAcomodacao       @default(STANDARD)
+  capacidade      Int                  @default(2)
+  descricao       String?
+  status          StatusAcomodacao     @default(DISPONIVEL)
+  ordem           Int                  @default(0)
+  criadoEm        DateTime             @default(now())
+  atualizadoEm    DateTime             @updatedAt
+  caracteristicas String[]             @default([])
+  valorDiaria     Decimal              @default(0) @db.Decimal(10, 2)
+  pousada         Pousada              @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  bloqueios       BloqueioAcomodacao[]
+  reservas        Reserva[]
+  tarefas         Tarefa[]
+  tickets         TicketManutencao[]
+
+  @@map("acomodacoes")
+}
+
+model BloqueioAcomodacao {
+  id           String            @id @default(uuid())
+  acomodacaoId String
+  motivo       String
+  dataInicio   DateTime
+  dataFim      DateTime?
+  criadoEm     DateTime          @default(now())
+  acomodacao   Acomodacao        @relation(fields: [acomodacaoId], references: [id], onDelete: Cascade)
+  ticket       TicketManutencao?
+
+  @@map("bloqueios_acomodacao")
+}
+
+model Hospede {
+  id             String    @id @default(uuid())
+  pousadaId      String
+  nome           String
+  email          String?
+  telefone       String?
+  cpf            String?
+  dataNascimento DateTime?
+  endereco       String?
+  cidade         String?
+  estado         String?
+  observacoes    String?
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+  pousada        Pousada   @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  reservas       Reserva[]
+
+  @@map("hospedes")
+}
+
+model Reserva {
+  id                     String                 @id @default(uuid())
+  pousadaId              String
+  acomodacaoId           String
+  hospedeId              String
+  status                 StatusReserva          @default(PENDENTE)
+  dataCheckin            DateTime
+  dataCheckout           DateTime
+  totalHospedes          Int                    @default(1)
+  valorTotal             Decimal                @db.Decimal(10, 2)
+  observacoes            String?
+  checkinRealizadoEm     DateTime?
+  checkoutRealizadoEm    DateTime?
+  checkinPorId           String?
+  checkoutPorId          String?
+  criadoEm               DateTime               @default(now())
+  atualizadoEm           DateTime               @updatedAt
+  extras                 ExtraReserva[]
+  lancamentosFinanceiros LancamentoFinanceiro[]
+  pagamentos             Pagamento[]
+  acomodacao             Acomodacao             @relation(fields: [acomodacaoId], references: [id])
+  checkinPor             Usuario?               @relation("CheckinPor", fields: [checkinPorId], references: [id])
+  checkoutPor            Usuario?               @relation("CheckoutPor", fields: [checkoutPorId], references: [id])
+  hospede                Hospede                @relation(fields: [hospedeId], references: [id])
+  pousada                Pousada                @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  tarefas                Tarefa[]
+
+  @@map("reservas")
+}
+
+model Pagamento {
+  id             String          @id @default(uuid())
+  reservaId      String
+  valor          Decimal         @db.Decimal(10, 2)
+  formaPagamento FormaPagamento
+  status         StatusPagamento @default(PENDENTE)
+  observacoes    String?
+  pagoEm         DateTime?
+  criadoEm       DateTime        @default(now())
+  reserva        Reserva         @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos")
+}
+
+model ExtraReserva {
+  id         String          @id @default(uuid())
+  reservaId  String
+  produtoId  String?
+  descricao  String
+  valor      Decimal         @db.Decimal(10, 2)
+  quantidade Int             @default(1)
+  criadoEm   DateTime        @default(now())
+  
+  reserva    Reserva         @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  produto    ProdutoServico? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@map("extras_reserva")
+}
+
+model Tarefa {
+  id             String           @id @default(uuid())
+  pousadaId      String
+  acomodacaoId   String?
+  reservaId      String?
+  responsavelId  String?
+  tipo           TipoTarefa
+  prioridade     PrioridadeTarefa @default(NORMAL)
+  status         StatusTarefa     @default(PENDENTE)
+  titulo         String
+  descricao      String?
+  prazo          DateTime?
+  iniciadaEm     DateTime?
+  concluidaEm    DateTime?
+  tempoGastoMinutos Int?
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+  itensChecklist ItemChecklist[]
+  acomodacao     Acomodacao?      @relation(fields: [acomodacaoId], references: [id])
+  pousada        Pousada          @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  reserva        Reserva?         @relation(fields: [reservaId], references: [id])
+  responsavel    Usuario?         @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
+
+  @@map("tarefas")
+}
+
+model ItemChecklist {
+  id        String  @id @default(uuid())
+  tarefaId  String
+  descricao String
+  concluido Boolean @default(false)
+  ordem     Int     @default(0)
+  tarefa    Tarefa  @relation(fields: [tarefaId], references: [id], onDelete: Cascade)
+
+  @@map("itens_checklist")
+}
+
+model ChecklistPadrao {
+  id        String     @id @default(uuid())
+  pousadaId String
+  tipo      TipoTarefa
+  descricao String
+  ordem     Int        @default(0)
+  pousada   Pousada    @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_padrao")
+}
+
+model TicketManutencao {
+  id            String                 @id @default(uuid())
+  pousadaId     String
+  acomodacaoId  String
+  bloqueioId    String?                @unique
+  responsavelId String?
+  titulo        String
+  descricao     String
+  prioridade    PrioridadeTarefa       @default(NORMAL)
+  status        StatusTicketManutencao @default(ABERTO)
+  fotosUrls     String[]
+  concluidaEm   DateTime?
+  criadoEm      DateTime               @default(now())
+  atualizadoEm  DateTime               @updatedAt
+  acomodacao    Acomodacao             @relation(fields: [acomodacaoId], references: [id])
+  bloqueio      BloqueioAcomodacao?    @relation(fields: [bloqueioId], references: [id])
+  pousada       Pousada                @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  responsavel   Usuario?               @relation("TicketResponsavel", fields: [responsavelId], references: [id])
+
+  @@map("tickets_manutencao")
+}
+
+model LancamentoFinanceiro {
+  id             String                   @id @default(uuid())
+  pousadaId      String
+  tipo           TipoLancamentoFinanceiro
+  descricao      String
+  valor          Decimal                  @db.Decimal(10, 2)
+  data           DateTime                 @default(now())
+  observacoes    String?
+  criadoEm       DateTime                 @default(now())
+  reservaId      String?
+  categoria      CategoriaFinanceira?
+  formaPagamento FormaPagamento?
+  pousada        Pousada                  @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  reserva        Reserva?                 @relation(fields: [reservaId], references: [id])
+
+  @@map("lancamentos_financeiros")
+}
+
+enum PerfilUsuario {
+  ADMIN
+  RECEPCIONISTA
+  EQUIPE
+}
+
+enum StatusAcomodacao {
+  DISPONIVEL
+  OCUPADO
+  LIMPEZA
+  MANUTENCAO
+  BLOQUEADO
+}
+
+enum TipoAcomodacao {
+  STANDARD
+  LUXO
+  SUITE
+  FAMILIA
+  CHALE
+  OUTRO
+}
+
+enum StatusReserva {
+  PENDENTE
+  CONFIRMADA
+  CHECKIN_FEITO
+  CHECKOUT_FEITO
+  CANCELADA
+}
+
+enum FormaPagamento {
+  PIX
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  CARTAO_CREDITO_VISTA
+  CARTAO_CREDITO_PARCELADO
+  DINHEIRO
+  TRANSFERENCIA
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PAGO
+  PARCIAL
+  CANCELADO
+}
+
+enum TipoTarefa {
+  LIMPEZA
+  PREPARACAO
+  MANUTENCAO
+  OUTRO
+}
+
+enum PrioridadeTarefa {
+  URGENTE
+  NORMAL
+  BAIXA
+}
+
+enum StatusTarefa {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum StatusTicketManutencao {
+  ABERTO
+  EM_ANDAMENTO
+  AGUARDANDO_PECA
+  CONCLUIDO
+  CANCELADO
+}
+
+enum TipoLancamentoFinanceiro {
+  ENTRADA
+  SAIDA
+}
+
+enum CategoriaFinanceira {
+  HOSPEDAGEM
+  CONSUMO
+  FUNCIONARIOS
+  ENERGIA
+  AGUA
+  INTERNET
+  MANUTENCAO
+  AMENIDADES
+  ALIMENTACAO
+  MARKETING
+  IMPOSTOS
+  OUTRO
+}
+
+enum StatusPlano {
+  TRIAL
+  ATIVO
+  INADIMPLENTE
+  CANCELADO
+}
+
+enum TipoPlano {
+  BASICO
+  PREMIUM
+}
+
+model ProdutoServico {
+  id           String                  @id @default(uuid())
+  pousadaId    String
+  nome         String
+  descricao    String?
+  preco        Decimal                 @db.Decimal(10, 2)
+  categoria    CategoriaProdutoServico
+  ativo        Boolean                 @default(true)
+  estoque      Int?
+  criadoEm     DateTime                @default(now())
+  atualizadoEm DateTime                @updatedAt
+  pousada      Pousada                 @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  consumos     ExtraReserva[]
+
+  @@map("produtos_servicos")
+}
+
+enum CategoriaProdutoServico {
+  FRIGOBAR
+  RESTAURANTE
+  PASSEIO
+  SERVICO
+  OUTRO
+}
