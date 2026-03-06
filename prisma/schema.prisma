@@ -265,19 +265,22 @@ model TicketManutencao {
 }
 
 model LancamentoFinanceiro {
-  id             String                   @id @default(uuid())
-  pousadaId      String
-  tipo           TipoLancamentoFinanceiro
-  descricao      String
-  valor          Decimal                  @db.Decimal(10, 2)
-  data           DateTime                 @default(now())
-  observacoes    String?
-  criadoEm       DateTime                 @default(now())
-  reservaId      String?
-  categoria      CategoriaFinanceira?
-  formaPagamento FormaPagamento?
-  pousada        Pousada                  @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
-  reserva        Reserva?                 @relation(fields: [reservaId], references: [id])
+  id                   String                   @id @default(uuid())
+  pousadaId            String
+  tipo                 TipoLancamentoFinanceiro
+  descricao            String
+  valor                Decimal                  @db.Decimal(10, 2)
+  data                 DateTime                 @default(now())
+  observacoes          String?
+  criadoEm             DateTime                 @default(now())
+  reservaId            String?
+  categoria            CategoriaFinanceira?
+  formaPagamento       FormaPagamento?
+  recorrente           Boolean                  @default(false)
+  intervaloRecorrencia IntervalRecorrencia?      @map("intervalo_recorrencia")
+  recorrenciaGrupoId   String?                  @map("recorrencia_grupo_id")
+  pousada              Pousada                  @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  reserva              Reserva?                 @relation(fields: [reservaId], references: [id])
 
   @@map("lancamentos_financeiros")
 }
@@ -361,6 +364,15 @@ enum StatusTicketManutencao {
 enum TipoLancamentoFinanceiro {
   ENTRADA
   SAIDA
+}
+
+enum IntervalRecorrencia {
+  SEMANAL
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
 }
 
 enum CategoriaFinanceira {

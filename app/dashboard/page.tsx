@@ -32,49 +32,49 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {/* 1. Reservas Totais */}
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-xs md:text-sm font-medium">Reservas do Mês</h3>
-                        <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
+                        <h3 className="tracking-tight text-xs font-medium">Reservas do Mês</h3>
+                        <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     </div>
-                    <div className="p-3 md:p-6 pt-0">
+                    <div className="px-3 pb-3 pt-0">
                         <div className="text-xl md:text-2xl font-bold">{metrics.totalReservasMes}</div>
-                        <p className="text-xs text-muted-foreground hidden md:block">Volume de pedidos ativos neste mês</p>
+                        <p className="text-xs text-muted-foreground">Volume de pedidos ativos neste mês</p>
                     </div>
                 </div>
 
                 {/* 2. Hospedagens Realizadas */}
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-xs md:text-sm font-medium">Hospedagens</h3>
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
+                        <h3 className="tracking-tight text-xs font-medium">Hospedagens</h3>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                     </div>
-                    <div className="p-3 md:p-6 pt-0">
+                    <div className="px-3 pb-3 pt-0">
                         <div className="text-xl md:text-2xl font-bold">{metrics.hospedagensRealizadas}</div>
-                        <p className="text-xs text-muted-foreground hidden md:block">Check-outs e pagamentos concluídos</p>
+                        <p className="text-xs text-muted-foreground">Check-outs e pagamentos concluídos</p>
                     </div>
                 </div>
 
                 {/* 3. Reservas Canceladas */}
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-xs md:text-sm font-medium">Cancelamentos</h3>
-                        <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
+                        <h3 className="tracking-tight text-xs font-medium">Cancelamentos</h3>
+                        <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
                     </div>
-                    <div className="p-3 md:p-6 pt-0">
+                    <div className="px-3 pb-3 pt-0">
                         <div className="text-xl md:text-2xl font-bold">{metrics.reservasCanceladas}</div>
-                        <p className="text-xs text-muted-foreground hidden md:block">Desistências computadas</p>
+                        <p className="text-xs text-muted-foreground">Desistências computadas</p>
                     </div>
                 </div>
 
                 {/* 4. Taxa de Ocupação Mês */}
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-                        <h3 className="tracking-tight text-xs md:text-sm font-medium">Tx. Ocupação</h3>
-                        <TrendingUp className="h-4 w-4 text-blue-500 shrink-0" />
+                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
+                        <h3 className="tracking-tight text-xs font-medium">Tx. Ocupação</h3>
+                        <TrendingUp className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                     </div>
-                    <div className="p-3 md:p-6 pt-0">
+                    <div className="px-3 pb-3 pt-0">
                         <div className="text-xl md:text-2xl font-bold">{metrics.taxaOcupacao}%</div>
-                        <p className="text-xs text-muted-foreground hidden md:block">Alocação média mensal</p>
+                        <p className="text-xs text-muted-foreground">Alocação média mensal</p>
                     </div>
                 </div>
             </div>

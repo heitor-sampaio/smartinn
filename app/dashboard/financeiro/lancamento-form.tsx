@@ -11,15 +11,28 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { RefreshCcw } from 'lucide-react'
 
 export function LancamentoForm({ onSuccess }: { onSuccess: () => void }) {
     const [isLoading, setIsLoading] = useState(false)
     const [tipoSelecionado, setTipoSelecionado] = useState<string>('ENTRADA')
+    const [isRecorrente, setIsRecorrente] = useState(false)
+    const [intervalo, setIntervalo] = useState<string>('MENSAL')
 
     async function onSubmit(formData: FormData) {
         setIsLoading(true)
+
+        // Injeta os campos de recorrência manualmente
+        if (tipoSelecionado === 'SAIDA' && isRecorrente) {
+            formData.set('recorrente', 'true')
+            formData.set('intervaloRecorrencia', intervalo)
+        } else {
+            formData.set('recorrente', 'false')
+        }
+
         const result = await createLancamento(formData)
         setIsLoading(false)
 
@@ -38,7 +51,15 @@ export function LancamentoForm({ onSuccess }: { onSuccess: () => void }) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="tipo">Tipo de Movimento</Label>
-                    <Select name="tipo" required value={tipoSelecionado} onValueChange={setTipoSelecionado}>
+                    <Select
+                        name="tipo"
+                        required
+                        value={tipoSelecionado}
+                        onValueChange={(v) => {
+                            setTipoSelecionado(v)
+                            if (v !== 'SAIDA') setIsRecorrente(false)
+                        }}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
@@ -85,7 +106,6 @@ export function LancamentoForm({ onSuccess }: { onSuccess: () => void }) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-
                 <div className="space-y-2">
                     <Label htmlFor="categoria">Plano / Categoria</Label>
                     <Select name="categoria">
@@ -117,6 +137,47 @@ export function LancamentoForm({ onSuccess }: { onSuccess: () => void }) {
                     </Select>
                 </div>
             </div>
+
+            {/* Recorrência — visível apenas para despesas */}
+            {tipoSelecionado === 'SAIDA' && (
+                <div className="rounded-lg border bg-muted/40 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="recorrente"
+                            checked={isRecorrente}
+                            onCheckedChange={(v) => setIsRecorrente(!!v)}
+                        />
+                        <Label htmlFor="recorrente" className="flex items-center gap-1.5 cursor-pointer font-medium">
+                            <RefreshCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                            Despesa recorrente
+                        </Label>
+                    </div>
+
+                    {isRecorrente && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="intervaloRecorrencia" className="text-xs text-muted-foreground">
+                                Repetir a cada
+                            </Label>
+                            <Select value={intervalo} onValueChange={setIntervalo}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SEMANAL">1 semana (semanal)</SelectItem>
+                                    <SelectItem value="MENSAL">1 mês (mensal)</SelectItem>
+                                    <SelectItem value="BIMESTRAL">2 meses (bimestral)</SelectItem>
+                                    <SelectItem value="TRIMESTRAL">3 meses (trimestral)</SelectItem>
+                                    <SelectItem value="SEMESTRAL">6 meses (semestral)</SelectItem>
+                                    <SelectItem value="ANUAL">1 ano (anual)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground pt-0.5">
+                                Serão criadas 12 ocorrências a partir da data informada.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações Extras</Label>
