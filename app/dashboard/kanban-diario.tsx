@@ -24,7 +24,7 @@ export function KanbanDiario({
 }) {
     // Componente interno para as colunas do Kanban
     const KanbanColumn = ({ title, icon, items, colorClass }: KanbanColumnProps) => (
-        <div className="flex flex-col bg-muted/30 rounded-lg border p-3 md:p-4 min-h-[180px] md:min-h-[400px]">
+        <div className="flex flex-col bg-card rounded-lg border p-3 md:p-4 min-h-[180px] md:min-h-[400px]">
             <div className="flex items-center justify-between mb-4 border-b pb-2">
                 <div className="flex items-center space-x-2 font-semibold">
                     {icon}

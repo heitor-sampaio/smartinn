@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createReserva, getAcomodacoesDisponiveis } from '@/actions/reservas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,7 +35,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Check, ChevronsUpDown, AlertTriangle } from "lucide-react"
+import { Check, ChevronsUpDown, AlertTriangle, SlidersHorizontal, X } from "lucide-react"
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { cn } from "@/lib/utils"
 import { toast } from 'sonner'
 import { addDays, format } from 'date-fns'
@@ -84,6 +86,36 @@ export function ReservaForm({
     const [availableAcomodacoes, setAvailableAcomodacoes] = useState<any[]>([])
     const [isLoadingAcomodacoes, setIsLoadingAcomodacoes] = useState(false)
 
+    // Filtros de características
+    const [filtroCaracteristicas, setFiltroCaracteristicas] = useState<string[]>([])
+    const [filtroTipo, setFiltroTipo] = useState<string>('')
+
+    const CARACTERISTICAS = ['Ar condicionado', 'Aquecedor', 'Banheira', 'Cofre', 'Frigobar', 'Lareira', 'Microondas', 'Televisão', 'Vista panorâmica']
+
+    const toggleCaracteristica = useCallback((item: string) => {
+        setFiltroCaracteristicas(prev =>
+            prev.includes(item) ? prev.filter(c => c !== item) : [...prev, item]
+        )
+    }, [])
+
+    const filteredAcomodacoes = useMemo(() => {
+        return availableAcomodacoes.filter(ac => {
+            if (filtroTipo && ac.tipo !== filtroTipo) return false
+            if (filtroCaracteristicas.length > 0) {
+                const caracts: string[] = ac.caracteristicas || []
+                if (!filtroCaracteristicas.every(f => caracts.includes(f))) return false
+            }
+            return true
+        })
+    }, [availableAcomodacoes, filtroCaracteristicas, filtroTipo])
+
+    const tiposDisponiveis = useMemo(() => {
+        const tipos = new Set(availableAcomodacoes.map(ac => ac.tipo))
+        return Array.from(tipos)
+    }, [availableAcomodacoes])
+
+    const temFiltrosAtivos = filtroCaracteristicas.length > 0 || filtroTipo !== ''
+
     // Efeito para re-checar disponibilidade de quartos sempre que trocar as datas ou pessoas!
     useEffect(() => {
         let isMounted = true
@@ -110,7 +142,7 @@ export function ReservaForm({
                 } else if (res.data) {
                     setAvailableAcomodacoes(res.data)
                     // Se os quartos atualmente selecionados NÃO estiverem mais na lista de disponíveis, remove-os da seleção
-                    setSelectedAcomodacoes(prev => prev.filter(id => res.data.some((a: any) => a.id === id)))
+                    setSelectedAcomodacoes(prev => prev.filter(id => res.data!.some((a: any) => a.id === id)))
                 }
                 setIsLoadingAcomodacoes(false)
             }
@@ -297,9 +329,86 @@ export function ReservaForm({
                 </div>
             </div>
 
-            {/* Bloco 2: Onde? (Acomodações Selecionáveis) */}
+            {/* Bloco 2: Filtros de Características */}
+            {!initialData?.id && availableAcomodacoes.length > 0 && (
+                <div>
+                    <div className="flex items-center justify-between border-b pb-1 mb-3">
+                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                            <SlidersHorizontal className="h-3.5 w-3.5" />
+                            2. Filtrar por Comodidades
+                        </h3>
+                        {temFiltrosAtivos && (
+                            <button
+                                type="button"
+                                onClick={() => { setFiltroCaracteristicas([]); setFiltroTipo('') }}
+                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                                <X className="h-3 w-3" /> Limpar filtros
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filtro por tipo */}
+                    {tiposDisponiveis.length > 1 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {[
+                                { value: '', label: 'Todos os tipos' },
+                                { value: 'STANDARD', label: 'Standard' },
+                                { value: 'LUXO', label: 'Luxo' },
+                                { value: 'SUITE', label: 'Suíte' },
+                                { value: 'FAMILIA', label: 'Família' },
+                                { value: 'CHALE', label: 'Chalé' },
+                                { value: 'OUTRO', label: 'Outro' },
+                            ].filter(t => t.value === '' || tiposDisponiveis.includes(t.value)).map(t => (
+                                <button
+                                    key={t.value}
+                                    type="button"
+                                    onClick={() => setFiltroTipo(t.value)}
+                                    className={cn(
+                                        "text-xs px-3 py-1 rounded-full border transition-colors",
+                                        filtroTipo === t.value
+                                            ? "bg-primary text-primary-foreground border-primary"
+                                            : "bg-background text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Filtro por características */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-muted/30 p-3 rounded-md border">
+                        {CARACTERISTICAS.map(item => (
+                            <div key={item} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`filtro-${item}`}
+                                    checked={filtroCaracteristicas.includes(item)}
+                                    onCheckedChange={() => toggleCaracteristica(item)}
+                                />
+                                <label
+                                    htmlFor={`filtro-${item}`}
+                                    className="text-sm leading-none cursor-pointer select-none"
+                                >
+                                    {item}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+
+                    {temFiltrosAtivos && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {filteredAcomodacoes.length === 0
+                                ? 'Nenhum quarto disponível com esses filtros.'
+                                : `${filteredAcomodacoes.length} de ${availableAcomodacoes.length} quarto(s) disponível(is) com esses filtros.`}
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {/* Bloco 3: Onde? (Acomodações Selecionáveis) */}
             <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 border-b pb-1">2. Seleção de Quartos</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 border-b pb-1">{initialData?.id ? '2' : '3'}. Seleção de Quartos</h3>
                 <div className="space-y-2">
                     <Label htmlFor="acomodacaoIds">Acomodações (Quartos) <span className="text-red-500">*</span></Label>
                     <input type="hidden" name="acomodacaoIds" value={JSON.stringify(selectedAcomodacoes)} />
@@ -311,7 +420,7 @@ export function ReservaForm({
                                 role="combobox"
                                 aria-expanded={openAcomodacoesCombobox}
                                 className="w-full justify-between font-normal h-auto min-h-[40px] whitespace-normal text-left"
-                                disabled={isLoadingAcomodacoes || availableAcomodacoes.length === 0 || !dataCheckin || !dataCheckout || !totalHospedesInput}
+                                disabled={isLoadingAcomodacoes || filteredAcomodacoes.length === 0 || !dataCheckin || !dataCheckout || !totalHospedesInput}
                             >
                                 {isLoadingAcomodacoes
                                     ? "Buscando..."
@@ -319,9 +428,11 @@ export function ReservaForm({
                                         ? "Preencha o Topo Primeiro"
                                         : availableAcomodacoes.length === 0
                                             ? "Sem vagas pro período selecionado"
-                                            : selectedAcomodacoes.length > 0
-                                                ? <span className="text-primary font-medium">{selectedAcomodacoes.length} quarto(s) selecionado(s)</span>
-                                                : "Selecione o(s) Quartos(s)..."}
+                                            : filteredAcomodacoes.length === 0
+                                                ? "Nenhum quarto atende aos filtros"
+                                                : selectedAcomodacoes.length > 0
+                                                    ? <span className="text-primary font-medium">{selectedAcomodacoes.length} quarto(s) selecionado(s)</span>
+                                                    : "Selecione o(s) Quartos(s)..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
@@ -331,12 +442,12 @@ export function ReservaForm({
                                 <CommandList className="max-h-[300px] overflow-auto">
                                     <CommandEmpty>Nenhuma acomodação correspondente.</CommandEmpty>
                                     <CommandGroup>
-                                        {availableAcomodacoes.map((ac: any) => {
+                                        {filteredAcomodacoes.map((ac: any) => {
                                             const isSelected = selectedAcomodacoes.includes(ac.id);
                                             return (
                                                 <CommandItem
                                                     key={ac.id}
-                                                    value={`${ac.nome} ${ac.tipo}`} // para busca textual
+                                                    value={`${ac.nome} ${ac.tipo}`}
                                                     onSelect={() => {
                                                         setSelectedAcomodacoes(prev =>
                                                             isSelected
@@ -363,6 +474,18 @@ export function ReservaForm({
                                                             </span>
                                                         </div>
                                                         <span className="text-xs text-muted-foreground">{ac.tipo} {ac.valorDiaria ? `- Diária: R$ ${Number(ac.valorDiaria).toFixed(2).replace('.', ',')}` : ''}</span>
+                                                        {ac.caracteristicas?.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {ac.caracteristicas.map((c: string) => (
+                                                                    <span key={c} className={cn(
+                                                                        "text-[10px] px-1.5 py-0.5 rounded-sm",
+                                                                        filtroCaracteristicas.includes(c)
+                                                                            ? "bg-primary/15 text-primary font-medium"
+                                                                            : "bg-muted text-muted-foreground"
+                                                                    )}>{c}</span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </CommandItem>
                                             )
@@ -383,7 +506,7 @@ export function ReservaForm({
 
             {/* Bloco 3: Para quem e Quanto? (Identificação e Total) */}
             <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 border-b pb-1">3. Vínculo do Titular & Acertos</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 border-b pb-1">{initialData?.id ? '3' : '4'}. Vínculo do Titular & Acertos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="hospedeId">Hóspede (Titular) <span className="text-red-500">*</span></Label>

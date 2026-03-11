@@ -11,7 +11,7 @@ import { CheckoutModal } from './checkout-modal';
 import { MapaReservasClient } from './mapa-reservas-client';
 import { MapaReservasMobile } from './mapa-reservas-mobile';
 import { ReservaDetalhesModal } from './reserva-detalhes-modal';
-import { fazerCheckin, cancelarReserva, confirmarReserva } from '@/actions/reservas';
+import { fazerCheckin, cancelarReserva, confirmarReserva, registrarNoShow } from '@/actions/reservas';
 
 export function ReservasClient({
     initialData,
@@ -77,6 +77,18 @@ export function ReservasClient({
         });
     };
 
+    const handleNoShow = async (id: string) => {
+        const p = registrarNoShow(id);
+        toast.promise(p, {
+            loading: 'Registrando No Show...',
+            success: (res) => {
+                if (res.error) throw new Error(res.error);
+                return res.success || 'No Show registrado.';
+            },
+            error: (e) => e.message
+        });
+    };
+
     return (
         <>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
@@ -130,6 +142,7 @@ export function ReservasClient({
                             onCheckin={(id: string) => { setIsDialogOpen(false); handleCheckin(id); }}
                             onCancelReserva={(id: string) => { setIsDialogOpen(false); handleCancel(id); }}
                             onCheckout={(id: string) => { setIsDialogOpen(false); openCheckout(id); }}
+                            onNoShow={(id: string) => { setIsDialogOpen(false); handleNoShow(id); }}
                         />
                     ) : (
                         <ReservaForm

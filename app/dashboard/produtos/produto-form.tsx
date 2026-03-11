@@ -55,7 +55,7 @@ export function ProdutoForm({ produto, onSuccess }: { produto?: any, onSuccess: 
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="preco">Preço (R$) *</Label>
+                    <Label htmlFor="preco">Preço de venda (R$) *</Label>
                     <Input
                         id="preco"
                         name="preco"
@@ -65,24 +65,34 @@ export function ProdutoForm({ produto, onSuccess }: { produto?: any, onSuccess: 
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="categoria">Categoria *</Label>
-                    <Select value={categoria} onValueChange={setCategoria}>
-                        <SelectTrigger id="categoria">
-                            <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="FRIGOBAR">Frigobar</SelectItem>
-                            <SelectItem value="RESTAURANTE">Restaurante</SelectItem>
-                            <SelectItem value="PASSEIO">Passeio</SelectItem>
-                            <SelectItem value="SERVICO">Serviço/Taxa</SelectItem>
-                            <SelectItem value="OUTRO">Outros</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Label htmlFor="custo">Custo (R$)</Label>
+                    <Input
+                        id="custo"
+                        name="custo"
+                        placeholder="0,00"
+                        defaultValue={produto?.custo != null ? formatReais(produto.custo) : ''}
+                    />
                 </div>
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="estoque">Estoque Inicial (Opcional)</Label>
+                <Label htmlFor="categoria">Categoria *</Label>
+                <Select value={categoria} onValueChange={setCategoria}>
+                    <SelectTrigger id="categoria">
+                        <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="FRIGOBAR">Frigobar</SelectItem>
+                        <SelectItem value="RESTAURANTE">Restaurante</SelectItem>
+                        <SelectItem value="PASSEIO">Passeio</SelectItem>
+                        <SelectItem value="SERVICO">Serviço/Taxa</SelectItem>
+                        <SelectItem value="OUTRO">Outros</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="estoque">{produto ? 'Estoque Atual' : 'Estoque Inicial'} (Opcional)</Label>
                 <Input
                     id="estoque"
                     name="estoque"
@@ -92,7 +102,11 @@ export function ProdutoForm({ produto, onSuccess }: { produto?: any, onSuccess: 
                     defaultValue={produto?.estoque ?? ''}
                     disabled={categoria === 'PASSEIO' || categoria === 'SERVICO'}
                 />
-                <span className="text-xs text-muted-foreground">Útil apenas para itens físicos.</span>
+                <span className="text-xs text-muted-foreground">
+                    {categoria === 'PASSEIO' || categoria === 'SERVICO'
+                        ? 'Controle de estoque não se aplica a esta categoria.'
+                        : 'Deixe em branco para não controlar estoque.'}
+                </span>
             </div>
 
             <div className="grid gap-2">

@@ -5,6 +5,16 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
 
+export async function getAcomodacoesCount() {
+    try {
+        const { pousadaId } = await requireAuth()
+        const count = await prisma.acomodacao.count({ where: { pousadaId } })
+        return { data: count }
+    } catch {
+        return { data: 0 }
+    }
+}
+
 export async function getAcomodacoes() {
     try {
         const { pousadaId } = await requireAuth()

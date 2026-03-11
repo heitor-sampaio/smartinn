@@ -33,7 +33,7 @@ export default async function FinanceiroPage({
                 <MonthSelector mesAtual={mes} anoAtual={ano} />
             </div>
 
-            <FinanceiroClient initialData={data || []} />
+            <FinanceiroClient initialData={data || []} mesAtual={mes} anoAtual={ano} />
         </div>
     )
 }

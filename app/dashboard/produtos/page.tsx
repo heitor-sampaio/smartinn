@@ -1,5 +1,6 @@
 import { Metadata } from "next"
 import { getProdutosList } from "@/actions/produtos"
+import { getAcomodacoesCount } from "@/actions/acomodacoes"
 import { ProdutosClient } from "./produtos-client"
 
 export const metadata: Metadata = {
@@ -8,7 +9,10 @@ export const metadata: Metadata = {
 }
 
 export default async function ProdutosPage() {
-    const { data: produtos, error } = await getProdutosList()
+    const [{ data: produtos, error }, { data: totalAcomodacoes }] = await Promise.all([
+        getProdutosList(),
+        getAcomodacoesCount(),
+    ])
 
     return (
         <div className="flex flex-col gap-4 md:gap-6">
@@ -24,7 +28,7 @@ export default async function ProdutosPage() {
                     <p>{error}</p>
                 </div>
             ) : (
-                <ProdutosClient initialData={produtos || []} />
+                <ProdutosClient initialData={produtos || []} totalAcomodacoes={totalAcomodacoes ?? 0} />
             )}
         </div>
     )

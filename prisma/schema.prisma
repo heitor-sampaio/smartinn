@@ -150,6 +150,7 @@ model Reserva {
   checkoutRealizadoEm    DateTime?
   checkinPorId           String?
   checkoutPorId          String?
+  checkInToken           String?                @unique
   criadoEm               DateTime               @default(now())
   atualizadoEm           DateTime               @updatedAt
   extras                 ExtraReserva[]
@@ -314,6 +315,7 @@ enum StatusReserva {
   CHECKIN_FEITO
   CHECKOUT_FEITO
   CANCELADA
+  NO_SHOW
 }
 
 enum FormaPagamento {
@@ -387,6 +389,7 @@ enum CategoriaFinanceira {
   ALIMENTACAO
   MARKETING
   IMPOSTOS
+  COMISSOES
   OUTRO
 }
 
@@ -408,6 +411,7 @@ model ProdutoServico {
   nome         String
   descricao    String?
   preco        Decimal                 @db.Decimal(10, 2)
+  custo        Decimal?                @db.Decimal(10, 2)
   categoria    CategoriaProdutoServico
   ativo        Boolean                 @default(true)
   estoque      Int?

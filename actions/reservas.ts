@@ -109,7 +109,7 @@ export async function getAcomodacoesDisponiveis(checkinRaw: string, checkoutRaw:
                 pousadaId,
                 id: { notIn: blockedIds }
             },
-            select: { id: true, nome: true, capacidade: true, tipo: true, valorDiaria: true },
+            select: { id: true, nome: true, capacidade: true, tipo: true, valorDiaria: true, caracteristicas: true },
             orderBy: { nome: 'asc' }
         })
 
@@ -229,7 +229,8 @@ export async function createReserva(formData: FormData) {
                         totalHospedes: hospedesNesteQuarto || 1, // garante no min 1
                         valorTotal: valorRateado,
                         observacoes,
-                        status: 'PENDENTE' // (Módulo 11) Orçamento aguardando aceite/pagamento
+                        status: 'PENDENTE', // (Módulo 11) Orçamento aguardando aceite/pagamento
+                        checkInToken: crypto.randomUUID()
                     }
                 });
             })
@@ -610,5 +611,31 @@ export async function cancelarReserva(reservaId: string) {
         return { success: 'Reserva cancelada.' }
     } catch (error) {
         return { error: 'Não foi possível cancelar.' }
+    }
+}
+
+export async function registrarNoShow(reservaId: string) {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const reserva = await prisma.reserva.findUnique({
+            where: { id: reservaId, pousadaId },
+            select: { status: true }
+        })
+
+        if (!reserva) return { error: 'Reserva não encontrada.' }
+        if (!['PENDENTE', 'CONFIRMADA'].includes(reserva.status)) {
+            return { error: 'Só é possível registrar No Show em reservas pendentes ou confirmadas.' }
+        }
+
+        await prisma.reserva.update({
+            where: { id: reservaId, pousadaId },
+            data: { status: 'NO_SHOW' }
+        })
+
+        revalidatePath('/dashboard/reservas')
+        return { success: 'No Show registrado.' }
+    } catch (error) {
+        return { error: 'Não foi possível registrar o No Show.' }
     }
 }

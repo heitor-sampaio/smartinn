@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ReservaForm } from './reserva-form'
 import { ConsumoModal } from './consumo-modal'
@@ -7,8 +8,9 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, DoorOpen, ThumbsUp, Trash2 } from 'lucide-react'
+import { CheckCircle2, Copy, DoorOpen, Link2, Loader2, ThumbsUp, Trash2, UserX } from 'lucide-react'
 import { deleteExtraReserva } from '@/actions/reservas'
+import { gerarTokenCheckin } from '@/actions/checkin-virtual'
 import { toast } from 'sonner'
 import {
     Accordion,
@@ -25,12 +27,38 @@ export function ReservaDetalhesModal({
     onConfirmar,
     onCheckin,
     onCheckout,
-    onCancelReserva
+    onCancelReserva,
+    onNoShow
 }: any) {
 
     const subtotalConsumo = reserva?.extras?.reduce((acc: number, curr: any) => acc + (curr.valor * curr.quantidade), 0) || 0
     const valorOriginal = reserva?.valorTotal || 0
     const subtotalGeral = valorOriginal + subtotalConsumo
+
+    const [checkInToken, setCheckInToken] = useState<string | null>(reserva?.checkInToken ?? null)
+    const [gerandoToken, setGerandoToken] = useState(false)
+
+    const checkinUrl = checkInToken
+        ? `${typeof window !== 'undefined' ? window.location.origin : ''}/check-in/${checkInToken}`
+        : null
+
+    const handleCopiarLink = () => {
+        if (!checkinUrl) return
+        navigator.clipboard.writeText(checkinUrl)
+        toast.success('Link copiado para a área de transferência!')
+    }
+
+    const handleGerarToken = async () => {
+        setGerandoToken(true)
+        const result = await gerarTokenCheckin(reserva.id)
+        setGerandoToken(false)
+        if (result.error) {
+            toast.error(result.error)
+        } else if (result.token) {
+            setCheckInToken(result.token)
+            toast.success('Link de check-in gerado!')
+        }
+    }
 
     const handleDeleteConsumo = async (extraId: string) => {
         if (!confirm('Deseja realmente remover este item do consumo? Isso devolverá produtos ao estoque se aplicável.')) return;
@@ -52,6 +80,7 @@ export function ReservaDetalhesModal({
             case 'CHECKIN_FEITO': return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-300">Alojado (In-House)</Badge>
             case 'CHECKOUT_FEITO': return <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-300">Concluída</Badge>
             case 'CANCELADA': return <Badge variant="destructive">Cancelada</Badge>
+            case 'NO_SHOW': return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-300">No Show</Badge>
             default: return <Badge>{status}</Badge>
         }
     }
@@ -106,6 +135,36 @@ export function ReservaDetalhesModal({
                     </div>
                 </div>
 
+                {(reserva.status === 'PENDENTE' || reserva.status === 'CONFIRMADA') && (
+                    <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Link2 className="h-4 w-4 text-primary" />
+                            <h4 className="font-semibold text-sm">Check-in Virtual</h4>
+                        </div>
+                        {checkinUrl ? (
+                            <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground">Envie este link ao hóspede para preencher os dados remotamente.</p>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 bg-background border rounded px-3 py-2 text-xs text-foreground truncate">
+                                        {checkinUrl}
+                                    </code>
+                                    <Button size="sm" variant="outline" onClick={handleCopiarLink} className="shrink-0">
+                                        <Copy className="h-4 w-4 mr-1" /> Copiar
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <p className="text-xs text-muted-foreground">Gere um link para o hóspede preencher os dados antes de chegar.</p>
+                                <Button size="sm" variant="outline" onClick={handleGerarToken} disabled={gerandoToken}>
+                                    {gerandoToken ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
+                                    Gerar link de check-in
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex flex-wrap gap-2 justify-end mt-4">
                     {reserva.status === 'PENDENTE' && (
                         <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onConfirmar(reserva.id)}>
@@ -120,6 +179,11 @@ export function ReservaDetalhesModal({
                     {reserva.status === 'CHECKIN_FEITO' && (
                         <Button className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => onCheckout(reserva.id)}>
                             <DoorOpen className="mr-2 h-4 w-4" /> Checkout
+                        </Button>
+                    )}
+                    {(reserva.status === 'CONFIRMADA' || reserva.status === 'PENDENTE') && (
+                        <Button variant="ghost" className="text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={() => onNoShow(reserva.id)}>
+                            <UserX className="mr-2 h-4 w-4" /> No Show
                         </Button>
                     )}
                     {(reserva.status === 'CONFIRMADA' || reserva.status === 'PENDENTE') && (

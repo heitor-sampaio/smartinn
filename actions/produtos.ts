@@ -20,7 +20,8 @@ export async function getProdutosList() {
         // Convert Decimal to number pra evitar problemas em Client Components
         const serialized = produtos.map(p => ({
             ...p,
-            preco: Number(p.preco)
+            preco: Number(p.preco),
+            custo: p.custo !== null ? Number(p.custo) : null
         }))
 
         return { data: serialized }
@@ -36,6 +37,7 @@ export async function createProduto(formData: FormData) {
         const nome = formData.get('nome') as string
         const descricao = formData.get('descricao') as string | null
         const precoStr = formData.get('preco') as string
+        const custoStr = formData.get('custo') as string | null
         const categoria = formData.get('categoria') as any
         const estoqueStr = formData.get('estoque') as string | null
 
@@ -48,7 +50,8 @@ export async function createProduto(formData: FormData) {
             return { error: 'Preço inválido.' }
         }
 
-        const estoque = estoqueStr ? parseInt(estoqueStr, 10) : null
+        const custo = custoStr && custoStr !== '' ? parseFloat(custoStr.replace(',', '.')) : null
+        const estoque = estoqueStr && estoqueStr !== '' ? parseInt(estoqueStr, 10) : null
 
         await prisma.produtoServico.create({
             data: {
@@ -56,6 +59,7 @@ export async function createProduto(formData: FormData) {
                 nome,
                 descricao,
                 preco,
+                custo,
                 categoria,
                 estoque,
                 ativo: true
@@ -82,6 +86,7 @@ export async function updateProduto(id: string, formData: FormData) {
         const nome = formData.get('nome') as string
         const descricao = formData.get('descricao') as string | null
         const precoStr = formData.get('preco') as string
+        const custoStr = formData.get('custo') as string | null
         const categoria = formData.get('categoria') as any
         const estoqueStr = formData.get('estoque') as string | null
 
@@ -94,7 +99,8 @@ export async function updateProduto(id: string, formData: FormData) {
             return { error: 'Preço inválido.' }
         }
 
-        const estoque = estoqueStr ? parseInt(estoqueStr, 10) : null
+        const custo = custoStr && custoStr !== '' ? parseFloat(custoStr.replace(',', '.')) : null
+        const estoque = estoqueStr && estoqueStr !== '' ? parseInt(estoqueStr, 10) : null
 
         await prisma.produtoServico.update({
             where: { id },
@@ -102,6 +108,7 @@ export async function updateProduto(id: string, formData: FormData) {
                 nome,
                 descricao,
                 preco,
+                custo,
                 categoria,
                 estoque
             }
@@ -132,6 +139,29 @@ export async function toggleStatusProduto(id: string, ativoAtual: boolean) {
         return { success: !ativoAtual ? 'Produto ativado!' : 'Produto desativado.' }
     } catch (err) {
         return { error: 'Falha ao alterar o status do produto.' }
+    }
+}
+
+export async function ajustarEstoque(id: string, novoEstoque: number) {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const existing = await prisma.produtoServico.findUnique({ where: { id } })
+        if (!existing || existing.pousadaId !== pousadaId) {
+            return { error: 'Produto não encontrado.' }
+        }
+
+        if (novoEstoque < 0) return { error: 'Estoque não pode ser negativo.' }
+
+        await prisma.produtoServico.update({
+            where: { id },
+            data: { estoque: novoEstoque }
+        })
+
+        revalidatePath('/dashboard/produtos')
+        return { success: `Estoque atualizado para ${novoEstoque} unidades.` }
+    } catch (err) {
+        return { error: 'Erro ao ajustar o estoque.' }
     }
 }
 
