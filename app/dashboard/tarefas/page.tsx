@@ -18,12 +18,14 @@ export default async function TarefasPage() {
     const acomodacoes = acomodacoesResponse.data || []
 
     return (
-        <div className="flex flex-col gap-4 md:gap-6 p-3 md:p-6 md:h-[calc(100vh-4rem)]">
-            <div>
-                <h1 className="text-xl md:text-3xl font-bold tracking-tight">Tarefas da Equipe</h1>
-                <p className="text-muted-foreground mt-1 text-sm">
-                    Painel operacional para camareiras e manutenção. Controle Limpeza, Reparos e Preparação.
-                </p>
+        <div className="flex flex-col gap-4 md:h-[calc(100vh-4rem)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Tarefas da Equipe</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        Painel operacional para camareiras e manutenção. Controle Limpeza, Reparos e Preparação.
+                    </p>
+                </div>
             </div>
 
             {/* Mobile: sem overflow-hidden para que colunas cresçam. Desktop: mantém contenção */}

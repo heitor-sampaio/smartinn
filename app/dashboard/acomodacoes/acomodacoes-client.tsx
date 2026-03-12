@@ -64,24 +64,21 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
 
     return (
         <>
-            <div className="flex items-center justify-between mb-4">
-                <p className="text-muted-foreground">
-                    Gerencie os quartos, chalés e camas da sua propriedade.
-                </p>
+            <div className="flex justify-end">
                 <Button onClick={openAdd}>
-                    <Plus className="mr-2 h-4 w-4" /> Novo Quarto
+                    <Plus className="mr-2 h-4 w-4" /> Nova Acomodação
                 </Button>
             </div>
 
             {/* MOBILE: cards empilhados (sem scroll lateral) */}
             <div className="md:hidden space-y-2">
                 {initialData.length === 0 ? (
-                    <div className="rounded-md border bg-card p-8 text-center text-muted-foreground text-sm">
+                    <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground text-sm">
                         Nenhuma acomodação cadastrada. Comece adicionando seu primeiro quarto!
                     </div>
                 ) : (
                     initialData.map((quarto) => (
-                        <div key={quarto.id} className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3">
+                        <div key={quarto.id} className="rounded-lg border bg-card p-3 flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate">{quarto.nome}</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">{quarto.tipo} · {quarto.capacidade} pessoa{quarto.capacidade > 1 ? 's' : ''}</p>
@@ -113,7 +110,7 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(quarto.id)}
                                     title="Excluir"
                                 >
@@ -126,7 +123,7 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
             </div>
 
             {/* DESKTOP: tabela completa */}
-            <div className="hidden md:block rounded-md border">
+            <div className="hidden md:block rounded-lg border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -172,7 +169,7 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDelete(quarto.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                                             </Button>

@@ -88,8 +88,8 @@ export function ProdutosClient({ initialData, totalAcomodacoes }: { initialData:
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
                 <div className="flex w-full gap-2 sm:max-w-md">
                     <div className="relative flex-1">
                         <PackageSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -115,7 +115,7 @@ export function ProdutosClient({ initialData, totalAcomodacoes }: { initialData:
                             {cat === 'TODAS' ? 'Todos' : categoriasConfig[cat]?.label}
                         </Button>
                     ))}
-                    <Button onClick={openCreateDialog} size="sm" className="hidden sm:flex whitespace-nowrap">
+                    <Button onClick={openCreateDialog} className="hidden sm:flex whitespace-nowrap">
                         <Plus className="mr-2 h-4 w-4" /> Cadastrar Produto
                     </Button>
                 </div>
@@ -126,7 +126,7 @@ export function ProdutosClient({ initialData, totalAcomodacoes }: { initialData:
                 </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((item) => {
                     const cfg = categoriasConfig[item.categoria] || categoriasConfig['OUTRO']
                     const Icon = cfg.icon
@@ -178,7 +178,7 @@ export function ProdutosClient({ initialData, totalAcomodacoes }: { initialData:
                                     </div>
                                 )}
 
-                                <div className="mt-auto pt-2 md:pt-3 flex gap-2 w-full items-center justify-between border-t border-border/50">
+                                <div className="mt-auto pt-2 md:pt-3 flex gap-2 w-full items-center justify-between border-t">
                                     {/* Estoque badge */}
                                     {item.estoque !== null ? (
                                         <button

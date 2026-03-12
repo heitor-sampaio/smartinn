@@ -35,7 +35,7 @@ export default async function DashboardLayout({
                 {/* Header no topo */}
                 <Header email={user.email} />
                 {/* Conteúdo dinâmico (páginas) */}
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 min-w-0 overflow-x-hidden">
+                <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-8 min-w-0 overflow-x-hidden">
                     {children}
                 </main>
             </div>

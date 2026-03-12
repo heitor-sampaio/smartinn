@@ -1,9 +1,18 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { getDashboardMetrics, getDailyOperations, getOccupancyChartsData } from '@/actions/dashboard'
-import { CalendarDays, CheckCircle2, XCircle, TrendingUp } from 'lucide-react'
+import {
+    getDashboardMetrics,
+    getDailyOperations,
+    getAcomodacaoStatusSummary,
+    getMonthlyFinancial,
+    getDashboardAlerts,
+} from '@/actions/dashboard'
+import { TrendingUp, XCircle, UserX } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { KanbanDiario } from './kanban-diario'
-import { OccupancyCharts } from './occupancy-charts'
+import { RoomStatusBar } from './room-status-bar'
+import { MonthlyFinancial } from './monthly-financial'
+import { AlertsPanel } from './alerts-panel'
 
 export default async function DashboardPage() {
     const supabase = createClient()
@@ -13,82 +22,91 @@ export default async function DashboardPage() {
         redirect('/login')
     }
 
-    const metrics = await getDashboardMetrics() || {
-        totalReservasMes: 0,
-        hospedagensRealizadas: 0,
-        reservasCanceladas: 0,
-        taxaOcupacao: '0.0'
+    const [
+        metrics,
+        { entradas, inHouse, saidas },
+        roomStatus,
+        monthlyFinancial,
+        alerts,
+    ] = await Promise.all([
+        getDashboardMetrics(),
+        getDailyOperations(),
+        getAcomodacaoStatusSummary(),
+        getMonthlyFinancial(),
+        getDashboardAlerts(),
+    ])
+
+    const safeMetrics = metrics || {
+        taxaOcupacao: '0.0',
+        taxaCancelamento: '0.0',
+        taxaNoShow: '0.0',
     }
 
-    const { entradas, inHouse, saidas } = await getDailyOperations()
-    const occupancyData = await getOccupancyChartsData()
-
     return (
-        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-3xl font-bold tracking-tight">Dashboard Central</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* 1. Reservas Totais */}
-                <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
-                        <h3 className="tracking-tight text-xs font-medium">Reservas do Mês</h3>
-                        <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    </div>
-                    <div className="px-3 pb-3 pt-0">
-                        <div className="text-xl md:text-2xl font-bold">{metrics.totalReservasMes}</div>
-                        <p className="text-xs text-muted-foreground">Volume de pedidos ativos neste mês</p>
-                    </div>
-                </div>
-
-                {/* 2. Hospedagens Realizadas */}
-                <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
-                        <h3 className="tracking-tight text-xs font-medium">Hospedagens</h3>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    </div>
-                    <div className="px-3 pb-3 pt-0">
-                        <div className="text-xl md:text-2xl font-bold">{metrics.hospedagensRealizadas}</div>
-                        <p className="text-xs text-muted-foreground">Check-outs e pagamentos concluídos</p>
-                    </div>
-                </div>
-
-                {/* 3. Reservas Canceladas */}
-                <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
-                        <h3 className="tracking-tight text-xs font-medium">Cancelamentos</h3>
-                        <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                    </div>
-                    <div className="px-3 pb-3 pt-0">
-                        <div className="text-xl md:text-2xl font-bold">{metrics.reservasCanceladas}</div>
-                        <p className="text-xs text-muted-foreground">Desistências computadas</p>
-                    </div>
-                </div>
-
-                {/* 4. Taxa de Ocupação Mês */}
-                <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-3 flex flex-row items-center justify-between space-y-0 pb-1">
-                        <h3 className="tracking-tight text-xs font-medium">Tx. Ocupação</h3>
-                        <TrendingUp className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                    </div>
-                    <div className="px-3 pb-3 pt-0">
-                        <div className="text-xl md:text-2xl font-bold">{metrics.taxaOcupacao}%</div>
-                        <p className="text-xs text-muted-foreground">Alocação média mensal</p>
-                    </div>
+        <div className="flex-1 flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Dashboard Central</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">Visão geral das operações, indicadores e pendências da pousada.</p>
                 </div>
             </div>
 
-            {/* Nova Seção: Fluxo de Operações de Hoje (Kanban) */}
-            <div className="mt-8">
-                <KanbanDiario entradas={entradas} inHouse={inHouse} saidas={saidas} />
+            {/* Alertas & Pendências */}
+            <AlertsPanel
+                urgentTasks={alerts.urgentTasks}
+                pendingReservas={alerts.pendingReservas}
+                maintenanceRooms={alerts.maintenanceRooms}
+                stockAlerts={alerts.stockAlerts}
+            />
+
+            {/* Status dos Quartos */}
+            <RoomStatusBar summary={roomStatus} />
+
+            {/* 3 KPI cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4">
+                <Card>
+                    <CardHeader className="p-3 pb-1">
+                        <CardDescription className="flex items-center gap-1.5">
+                            <TrendingUp className="h-3.5 w-3.5" /> Tx. Ocupação
+                        </CardDescription>
+                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Alocação média das acomodações no mês</p>
+                        <CardTitle className="text-2xl font-bold text-primary">{safeMetrics.taxaOcupacao}%</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0" />
+                </Card>
+
+                <Card>
+                    <CardHeader className="p-3 pb-1">
+                        <CardDescription className="flex items-center gap-1.5">
+                            <XCircle className="h-3.5 w-3.5" /> Tx. Cancelamento
+                        </CardDescription>
+                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Canceladas sobre o total de reservas do mês</p>
+                        <CardTitle className="text-2xl font-bold">{safeMetrics.taxaCancelamento}%</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0" />
+                </Card>
+
+                <Card>
+                    <CardHeader className="p-3 pb-1">
+                        <CardDescription className="flex items-center gap-1.5">
+                            <UserX className="h-3.5 w-3.5" /> Tx. No-Show
+                        </CardDescription>
+                        <p className="text-[10px] text-muted-foreground/60 leading-snug">No-shows sobre o total de reservas do mês</p>
+                        <CardTitle className="text-2xl font-bold">{safeMetrics.taxaNoShow}%</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3 pt-0" />
+                </Card>
             </div>
 
-            {/* Nova Seção: Gráficos Analíticos */}
-            <div className="mt-8">
-                <OccupancyCharts data={occupancyData} />
-            </div>
+            {/* Financeiro do Mês */}
+            <MonthlyFinancial
+                entradas={monthlyFinancial.entradas}
+                saidas={monthlyFinancial.saidas}
+                saldo={monthlyFinancial.saldo}
+            />
 
+            {/* Kanban Diário */}
+            <KanbanDiario entradas={entradas} inHouse={inHouse} saidas={saidas} />
         </div>
     )
 }

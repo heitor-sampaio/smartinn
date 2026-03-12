@@ -5,9 +5,12 @@ export default async function ConfiguracoesPage() {
     const settings = await getAjustes();
 
     return (
-        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl md:text-3xl font-bold tracking-tight">Configurações</h2>
+        <div className="flex-1 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Configurações</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">Personalize as preferências e parâmetros da pousada.</p>
+                </div>
             </div>
 
             {/* Client component passing the current settings */}

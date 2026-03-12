@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
-import { startOfMonth, endOfMonth, min, max, differenceInCalendarDays, startOfDay, endOfDay, startOfYear, endOfYear, eachMonthOfInterval, format, subYears, startOfWeek, endOfWeek } from 'date-fns'
+import { startOfMonth, endOfMonth, min, max, differenceInCalendarDays, startOfDay, endOfDay, startOfYear, endOfYear, eachMonthOfInterval, format, subYears, startOfWeek, endOfWeek, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { requireAuth } from '@/lib/auth'
 
@@ -30,30 +30,23 @@ export async function getDashboardMetrics() {
         })
 
         let totalReservasMes = 0
-        let hospedagensRealizadas = 0
         let reservasCanceladas = 0
+        let reservasNoShow = 0
         let diasOcupadosNoMes = 0
 
         for (const r of reservasDoMes) {
-            // Conta TODAS as reservas (ativas ou canceladas) p/ KPI principal
             totalReservasMes++
 
             if (r.status === 'CANCELADA') {
                 reservasCanceladas++
+            } else if (r.status === 'NO_SHOW') {
+                reservasNoShow++
             } else {
-                // Contabilidade de Checkouts (Realizadas) se o checkout ocorreu neste mes
-                if (r.status === 'CHECKOUT_FEITO' && r.dataCheckout >= monthStart && r.dataCheckout <= monthEnd) {
-                    hospedagensRealizadas++
-                }
-
-                // Calculo de dias de ocupacao restritos as bordas deste mes
                 const checkinReal = max([r.dataCheckin, monthStart])
                 const checkoutReal = min([r.dataCheckout, monthEnd])
 
-                // Usa diferença em DIAS DE CALENDÁRIO para não perder pernoites menores que 24h (ex: Checkin 14h / Checkout 10h = 20h = 0 dias)
                 let diasNoMes = differenceInCalendarDays(checkoutReal, checkinReal)
 
-                // Trata as hospedagens do tipo Day Use (entrou e saiu no mesmo dia) computando 1 diária instalada.
                 if (diasNoMes === 0 && r.dataCheckin.getDate() === r.dataCheckout.getDate()) {
                     diasNoMes = 1
                 }
@@ -64,7 +57,7 @@ export async function getDashboardMetrics() {
             }
         }
 
-        // 3. Calculo da Taxa de Ocupacao
+        // Taxa de Ocupacao
         const diasTotaisDoMes = differenceInCalendarDays(monthEnd, monthStart) + 1
         const capacidadeMaximaDias = totalAcomodacoes * diasTotaisDoMes
 
@@ -73,11 +66,13 @@ export async function getDashboardMetrics() {
             taxaOcupacao = (diasOcupadosNoMes / capacidadeMaximaDias) * 100
         }
 
+        const taxaCancelamento = totalReservasMes > 0 ? (reservasCanceladas / totalReservasMes) * 100 : 0
+        const taxaNoShow = totalReservasMes > 0 ? (reservasNoShow / totalReservasMes) * 100 : 0
+
         return {
-            totalReservasMes,
-            hospedagensRealizadas,
-            reservasCanceladas,
-            taxaOcupacao: taxaOcupacao.toFixed(1) // formatado "12.5"
+            taxaOcupacao: taxaOcupacao.toFixed(1),
+            taxaCancelamento: taxaCancelamento.toFixed(1),
+            taxaNoShow: taxaNoShow.toFixed(1),
         }
 
     } catch (error) {
@@ -247,5 +242,184 @@ export async function getOccupancyChartsData() {
     } catch (error) {
         console.error("Erro ao puxar dados gráficos", error)
         return null
+    }
+}
+
+export async function getAcomodacaoStatusSummary() {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const acomodacoes = await prisma.acomodacao.findMany({
+            where: { pousadaId },
+            select: { status: true }
+        })
+
+        const summary: Record<string, number> = {
+            DISPONIVEL: 0,
+            OCUPADO: 0,
+            LIMPEZA: 0,
+            MANUTENCAO: 0,
+            BLOQUEADO: 0
+        }
+
+        for (const a of acomodacoes) {
+            summary[a.status] = (summary[a.status] || 0) + 1
+        }
+
+        return summary
+    } catch (error) {
+        console.error("Erro ao puxar status das acomodações:", error)
+        return { DISPONIVEL: 0, OCUPADO: 0, LIMPEZA: 0, MANUTENCAO: 0, BLOQUEADO: 0 }
+    }
+}
+
+export async function getUpcomingCheckins() {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const now = new Date()
+        const todayStart = startOfDay(now)
+        const sevenDaysLater = endOfDay(addDays(now, 7))
+
+        const reservas = await prisma.reserva.findMany({
+            where: {
+                pousadaId,
+                status: 'CONFIRMADA',
+                dataCheckin: {
+                    gte: todayStart,
+                    lte: sevenDaysLater
+                }
+            },
+            include: {
+                hospede: { select: { nome: true } },
+                acomodacao: { select: { nome: true } }
+            },
+            orderBy: { dataCheckin: 'asc' },
+            take: 8
+        })
+
+        return reservas.map(r => ({
+            id: r.id,
+            hospedeNome: r.hospede.nome,
+            acomodacaoNome: r.acomodacao.nome,
+            dataCheckin: r.dataCheckin.toISOString(),
+            dataCheckout: r.dataCheckout.toISOString(),
+            noites: differenceInCalendarDays(r.dataCheckout, r.dataCheckin)
+        }))
+    } catch (error) {
+        console.error("Erro ao puxar próximas chegadas:", error)
+        return []
+    }
+}
+
+export async function getMonthlyFinancial() {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const now = new Date()
+        const monthStart = startOfMonth(now)
+        const monthEnd = endOfMonth(now)
+
+        const lancamentos = await prisma.lancamentoFinanceiro.findMany({
+            where: {
+                pousadaId,
+                data: { gte: monthStart, lte: monthEnd }
+            },
+            select: { tipo: true, valor: true }
+        })
+
+        let entradas = 0
+        let saidas = 0
+
+        for (const l of lancamentos) {
+            const valor = Number(l.valor)
+            if (l.tipo === 'ENTRADA') entradas += valor
+            else saidas += valor
+        }
+
+        return { entradas, saidas, saldo: entradas - saidas }
+    } catch (error) {
+        console.error("Erro ao puxar financeiro do mês:", error)
+        return { entradas: 0, saidas: 0, saldo: 0 }
+    }
+}
+
+export async function getDashboardAlerts() {
+    try {
+        const { pousadaId } = await requireAuth()
+
+        const twoDaysAgo = subDays(new Date(), 2)
+
+        const [urgentTasks, pendingReservas, maintenanceRooms, totalAcomodacoes, lowStockItems] = await Promise.all([
+            prisma.tarefa.findMany({
+                where: {
+                    pousadaId,
+                    prioridade: 'URGENTE',
+                    status: { in: ['PENDENTE', 'EM_ANDAMENTO'] }
+                },
+                select: { id: true, titulo: true, acomodacao: { select: { nome: true } } },
+                orderBy: { criadoEm: 'asc' },
+                take: 5
+            }),
+            prisma.reserva.findMany({
+                where: {
+                    pousadaId,
+                    status: 'PENDENTE',
+                    criadoEm: { lte: twoDaysAgo }
+                },
+                include: {
+                    hospede: { select: { nome: true } },
+                    acomodacao: { select: { nome: true } }
+                },
+                orderBy: { criadoEm: 'asc' },
+                take: 5
+            }),
+            prisma.acomodacao.findMany({
+                where: { pousadaId, status: 'MANUTENCAO' },
+                select: { id: true, nome: true }
+            }),
+            prisma.acomodacao.count({ where: { pousadaId } }),
+            prisma.produtoServico.findMany({
+                where: {
+                    pousadaId,
+                    ativo: true,
+                    estoque: { not: null }
+                },
+                select: { id: true, nome: true, estoque: true },
+                orderBy: { estoque: 'asc' }
+            })
+        ])
+
+        const limiteEstoque = totalAcomodacoes * 7
+        const stockAlerts = lowStockItems
+            .filter(p => p.estoque !== null && p.estoque < limiteEstoque)
+            .map(p => ({
+                id: p.id,
+                nome: p.nome,
+                estoque: p.estoque as number,
+                zerado: p.estoque === 0
+            }))
+
+        return {
+            urgentTasks: urgentTasks.map(t => ({
+                id: t.id,
+                titulo: t.titulo,
+                acomodacaoNome: t.acomodacao?.nome ?? null
+            })),
+            pendingReservas: pendingReservas.map(r => ({
+                id: r.id,
+                hospedeNome: r.hospede.nome,
+                acomodacaoNome: r.acomodacao.nome,
+                criadoEm: r.criadoEm.toISOString()
+            })),
+            maintenanceRooms: maintenanceRooms.map(a => ({
+                id: a.id,
+                nome: a.nome
+            })),
+            stockAlerts
+        }
+    } catch (error) {
+        console.error("Erro ao puxar alertas do dashboard:", error)
+        return { urgentTasks: [], pendingReservas: [], maintenanceRooms: [], stockAlerts: [] }
     }
 }

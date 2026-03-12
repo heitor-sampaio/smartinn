@@ -29,6 +29,7 @@ export function ReservasClient({
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     // Armazenar ID em vez do objeto inteiro para que o Refresh pós-ação do Modal de Extras recarregue os subtotais aqui na hora!
     const [editingReservaId, setEditingReservaId] = useState<string | null>(null);
+    const [prefillData, setPrefillData] = useState<{ acomodacaoId: string; dataCheckin: string; dataCheckout: string } | null>(null);
 
     // Flow de Checkout
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -38,6 +39,17 @@ export function ReservasClient({
 
     const openAdd = () => {
         setEditingReservaId(null);
+        setPrefillData(null);
+        setIsDialogOpen(true);
+    };
+
+    const openAddWithPrefill = (acomodacaoId: string, date: Date) => {
+        const checkin = date.toISOString().split('T')[0];
+        const nextDay = new Date(date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const checkout = nextDay.toISOString().split('T')[0];
+        setEditingReservaId(null);
+        setPrefillData({ acomodacaoId, dataCheckin: checkin, dataCheckout: checkout });
         setIsDialogOpen(true);
     };
 
@@ -91,15 +103,11 @@ export function ReservasClient({
 
     return (
         <>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <p className="text-muted-foreground w-full sm:w-auto">
-                    Monitore o mapa de ocupação, gerencie consumos e fature reservas com poucos cliques.
-                </p>
-                <div className="flex items-center space-x-2 shrink-0">
-                    <Button onClick={openAdd} className="bg-primary">
-                        <Plus className="mr-2 h-4 w-4" /> Nova Reserva
-                    </Button>
-                </div>
+            {/* Botão visível apenas no mobile — no desktop fica na toolbar do mapa */}
+            <div className="flex md:hidden">
+                <Button onClick={openAdd} className="bg-primary">
+                    <Plus className="mr-2 h-4 w-4" /> Nova Reserva
+                </Button>
             </div>
 
             <div className="pt-2">
@@ -123,12 +131,14 @@ export function ReservasClient({
                             setEditingReservaId(id);
                             setIsDialogOpen(true);
                         }}
+                        onAddReserva={openAdd}
+                        onDayClick={openAddWithPrefill}
                     />
                 </div>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto w-11/12 p-6">
+                <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto w-11/12 p-3 md:p-6">
                     <DialogHeader className="mb-2">
                         <DialogTitle className="text-2xl">{editingReserva ? 'Painel da Reserva' : 'Registrar Nova Reserva'}</DialogTitle>
                     </DialogHeader>
@@ -146,7 +156,7 @@ export function ReservasClient({
                         />
                     ) : (
                         <ReservaForm
-                            initialData={null}
+                            initialData={prefillData ?? null}
                             hospedesList={hospedesList}
                             acomodacoesList={acomodacoesList}
                             onSuccess={() => setIsDialogOpen(false)}

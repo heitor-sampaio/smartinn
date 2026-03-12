@@ -52,10 +52,7 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
 
     return (
         <>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-                <p className="text-muted-foreground w-full sm:w-auto">
-                    Mantenha a base de contatos dos seus clientes (CRM).
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
                 <div className="flex w-full sm:w-auto items-center space-x-2">
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -76,14 +73,14 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
             {/* MOBILE: lista de cards (sem scroll lateral) */}
             <div className="md:hidden space-y-2">
                 {filteredData.length === 0 ? (
-                    <div className="rounded-md border bg-card p-8 text-center text-muted-foreground text-sm">
+                    <div className="rounded-lg border bg-card p-6 text-center text-muted-foreground text-sm">
                         {searchTerm ? 'Nenhum hóspede encontrado na busca.' : 'Sua lista de hóspedes está vazia.'}
                     </div>
                 ) : (
                     filteredData.map((hospede) => (
                         <div
                             key={hospede.id}
-                            className="rounded-lg border bg-card p-4 flex items-start justify-between gap-3"
+                            className="rounded-lg border bg-card p-3 flex items-start justify-between gap-3"
                         >
                             <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate">{hospede.nome}</p>
@@ -112,7 +109,7 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(hospede.id)}
                                     title="Excluir"
                                 >
@@ -125,7 +122,7 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
             </div>
 
             {/* DESKTOP: tabela completa */}
-            <div className="hidden md:block rounded-md border bg-card">
+            <div className="hidden md:block rounded-lg border bg-card">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -164,7 +161,7 @@ export function HospedesClient({ initialData }: { initialData: any[] }) {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDelete(hospede.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                                             </Button>

@@ -15,12 +15,14 @@ export default async function ProdutosPage() {
     ])
 
     return (
-        <div className="flex flex-col gap-4 md:gap-6">
-            <div>
-                <h1 className="text-xl md:text-3xl font-bold tracking-tight">Produtos e Serviços</h1>
-                <p className="text-muted-foreground mt-1 text-sm">
-                    Adicione itens do frigobar, pratos do restaurante e passeios que serão ofertados aos seus clientes.
-                </p>
+        <div className="flex-1 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Produtos e Serviços</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        Adicione itens do frigobar, pratos do restaurante e passeios que serão ofertados aos seus clientes.
+                    </p>
+                </div>
             </div>
 
             {error ? (

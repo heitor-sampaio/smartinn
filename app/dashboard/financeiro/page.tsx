@@ -27,9 +27,12 @@ export default async function FinanceiroPage({
     }
 
     return (
-        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4">
-                <h2 className="text-xl md:text-3xl font-bold tracking-tight">Caixa e Lançamentos</h2>
+        <div className="flex-1 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Caixa e Lançamentos</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">Controle de entradas, saídas e fluxo de caixa da pousada.</p>
+                </div>
                 <MonthSelector mesAtual={mes} anoAtual={ano} />
             </div>
 
