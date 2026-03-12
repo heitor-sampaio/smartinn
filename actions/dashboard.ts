@@ -344,7 +344,14 @@ export async function getMonthlyFinancial() {
     }
 }
 
-export async function getDashboardAlerts() {
+type DashboardAlertsResult = {
+    urgentTasks: { id: string; titulo: string; acomodacaoNome: string | null }[]
+    pendingReservas: { id: string; hospedeNome: string; acomodacaoNome: string; criadoEm: string }[]
+    maintenanceRooms: { id: string; nome: string }[]
+    stockAlerts: { id: string; nome: string; estoque: number; zerado: boolean }[]
+}
+
+export async function getDashboardAlerts(): Promise<DashboardAlertsResult> {
     try {
         const { pousadaId } = await requireAuth()
 

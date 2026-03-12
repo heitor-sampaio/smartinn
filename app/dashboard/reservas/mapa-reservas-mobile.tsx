@@ -1,11 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { format, addMonths, subMonths, parseISO, startOfMonth, endOfMonth, differenceInCalendarDays } from 'date-fns'
+import { format, addMonths, subMonths, addDays, startOfWeek, parseISO, startOfMonth, endOfMonth, differenceInCalendarDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, BedDouble, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, BedDouble, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+
+type ViewPeriod = 'semana' | 'quinzena' | 'mes'
+
+const PERIOD_CONFIG: Record<ViewPeriod, { label: string }> = {
+    semana:   { label: 'Semana'  },
+    quinzena: { label: '15 dias' },
+    mes:      { label: 'Mês'     },
+}
 
 interface MapaReservasMobileProps {
     reservas: any[]
@@ -13,69 +20,100 @@ interface MapaReservasMobileProps {
     onReservaClick: (reservaId: string) => void
 }
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-    PENDENTE: { label: 'Pendente', dot: 'bg-yellow-400', badge: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-    CONFIRMADA: { label: 'Confirmada', dot: 'bg-blue-400', badge: 'bg-blue-100 text-blue-800 border-blue-300' },
-    CHECKIN_FEITO: { label: 'In-House', dot: 'bg-emerald-400', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-    CHECKOUT_FEITO: { label: 'Check-out', dot: 'bg-slate-300', badge: 'bg-slate-100 text-slate-700 border-slate-300' },
-    CANCELADA: { label: 'Cancelada', dot: 'bg-red-400', badge: 'bg-red-100 text-red-800 border-red-300' },
+const STATUS_CONFIG: Record<string, { label: string; accent: string; bg: string; text: string; dot: string }> = {
+    PENDENTE:       { label: 'Pendente',   accent: '#d97706', bg: 'bg-amber-200   dark:bg-amber-700/80',      text: 'text-amber-900  dark:text-amber-50',  dot: 'bg-amber-500' },
+    CONFIRMADA:     { label: 'Confirmada', accent: '#2563eb', bg: 'bg-blue-200    dark:bg-blue-700/80',        text: 'text-blue-900   dark:text-blue-50',   dot: 'bg-blue-500' },
+    CHECKIN_FEITO:  { label: 'In-House',   accent: '#059669', bg: 'bg-emerald-200 dark:bg-emerald-700/80',     text: 'text-emerald-900 dark:text-emerald-50', dot: 'bg-emerald-500' },
+    CHECKOUT_FEITO: { label: 'Concluída',  accent: '#64748b', bg: 'bg-slate-200   dark:bg-slate-600/80',       text: 'text-slate-700  dark:text-slate-100',  dot: 'bg-slate-400' },
+    CANCELADA:      { label: 'Cancelada',  accent: '#dc2626', bg: 'bg-red-200     dark:bg-red-700/80',         text: 'text-red-900    dark:text-red-50',     dot: 'bg-red-500' },
 }
 
+const ORDEM = ['CHECKIN_FEITO', 'CONFIRMADA', 'PENDENTE', 'CHECKOUT_FEITO'] as const
+
 export function MapaReservasMobile({ reservas, acomodacoes, onReservaClick }: MapaReservasMobileProps) {
-    const [currentDate, setCurrentDate] = useState(new Date())
+    const [period, setPeriod] = useState<ViewPeriod>('mes')
+    const [rangeStart, setRangeStart] = useState(() => startOfMonth(new Date()))
 
-    const monthStart = startOfMonth(currentDate)
-    const monthEnd = endOfMonth(currentDate)
+    const { viewStart, viewEnd } = useMemo(() => {
+        if (period === 'mes') return { viewStart: startOfMonth(rangeStart), viewEnd: endOfMonth(rangeStart) }
+        const count = period === 'semana' ? 7 : 15
+        return { viewStart: rangeStart, viewEnd: addDays(rangeStart, count - 1) }
+    }, [period, rangeStart])
 
-    // Reservas que cruzam o mês visualizado, excluindo canceladas
-    const reservasDoMes = useMemo(() => {
+    const headerLabel = useMemo(() => {
+        if (period === 'mes') return format(rangeStart, 'MMM yyyy', { locale: ptBR })
+        const sameMonth = viewStart.getMonth() === viewEnd.getMonth() && viewStart.getFullYear() === viewEnd.getFullYear()
+        if (sameMonth) return `${format(viewStart, 'd')} – ${format(viewEnd, "d MMM", { locale: ptBR })}`
+        return `${format(viewStart, "d MMM", { locale: ptBR })} – ${format(viewEnd, "d MMM", { locale: ptBR })}`
+    }, [period, rangeStart, viewStart, viewEnd])
+
+    function navigate(dir: 1 | -1) {
+        if (period === 'semana')        setRangeStart(d => addDays(d, dir * 7))
+        else if (period === 'quinzena') setRangeStart(d => addDays(d, dir * 15))
+        else                            setRangeStart(d => dir === 1 ? addMonths(d, 1) : subMonths(d, 1))
+    }
+
+    function handlePeriodChange(p: ViewPeriod) {
+        setPeriod(p)
+        if (p === 'mes')         setRangeStart(startOfMonth(rangeStart))
+        else if (p === 'semana') setRangeStart(startOfWeek(rangeStart, { weekStartsOn: 0 }))
+    }
+
+    const reservasDoPeriodo = useMemo(() => {
         return reservas
             .filter(r => {
                 if (r.status === 'CANCELADA') return false
-                const ci = typeof r.dataCheckin === 'string' ? parseISO(r.dataCheckin) : r.dataCheckin
+                const ci = typeof r.dataCheckin  === 'string' ? parseISO(r.dataCheckin)  : r.dataCheckin
                 const co = typeof r.dataCheckout === 'string' ? parseISO(r.dataCheckout) : r.dataCheckout
-                return ci <= monthEnd && co >= monthStart
+                return ci <= viewEnd && co >= viewStart
             })
             .sort((a, b) => {
                 const aDate = typeof a.dataCheckin === 'string' ? parseISO(a.dataCheckin) : a.dataCheckin
                 const bDate = typeof b.dataCheckin === 'string' ? parseISO(b.dataCheckin) : b.dataCheckin
                 return aDate.getTime() - bDate.getTime()
             })
-    }, [reservas, monthStart, monthEnd])
+    }, [reservas, viewStart, viewEnd])
 
-    // Agrupa por status para ordenar: in-house → confirmada → pendente → checkout
-    const ordem = ['CHECKIN_FEITO', 'CONFIRMADA', 'PENDENTE', 'CHECKOUT_FEITO']
-    const agrupado = ordem
-        .map(status => ({
-            status,
-            items: reservasDoMes.filter(r => r.status === status),
-        }))
+    const agrupado = ORDEM
+        .map(status => ({ status, items: reservasDoPeriodo.filter(r => r.status === status) }))
         .filter(g => g.items.length > 0)
 
     return (
         <div className="space-y-4">
-            {/* Cabeçalho com navegação de mês */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    Ocupação
-                </h3>
-                <div className="flex items-center gap-1">
-                    <Button
-                        variant="outline" size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                    >
+            {/* Cabeçalho — 2 linhas */}
+            <div className="space-y-2">
+                {/* Linha 1: título + seletor de período */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                        <CalendarDays className="h-4 w-4" />
+                        Ocupação
+                    </div>
+                    <div className="flex rounded-lg border overflow-hidden text-xs">
+                        {(['semana', 'quinzena', 'mes'] as ViewPeriod[]).map(p => (
+                            <button
+                                key={p}
+                                onClick={() => handlePeriodChange(p)}
+                                className={`px-3 py-1.5 font-medium transition-colors border-r last:border-r-0
+                                    ${period === p
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-background text-muted-foreground hover:bg-muted/60'
+                                    }`}
+                            >
+                                {PERIOD_CONFIG[p].label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Linha 2: navegação de ciclo */}
+                <div className="flex items-center justify-between">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium capitalize w-28 text-center">
-                        {format(currentDate, 'MMM yyyy', { locale: ptBR })}
+                    <span className="text-sm font-semibold capitalize select-none">
+                        {headerLabel}
                     </span>
-                    <Button
-                        variant="outline" size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                    >
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(1)}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -83,84 +121,87 @@ export function MapaReservasMobile({ reservas, acomodacoes, onReservaClick }: Ma
 
             {/* Legenda compacta */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                {ordem.map(s => (
-                    <div key={s} className="flex items-center gap-1">
-                        <div className={`w-2 h-2 rounded-full ${STATUS_CONFIG[s].dot}`} />
+                {ORDEM.map(s => (
+                    <div key={s} className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_CONFIG[s].dot}`} />
                         {STATUS_CONFIG[s].label}
                     </div>
                 ))}
             </div>
 
-            {/* Lista de reservas agrupadas por status */}
-            {reservasDoMes.length === 0 ? (
-                <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+            {/* Lista agrupada */}
+            {reservasDoPeriodo.length === 0 ? (
+                <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
                     Nenhuma reserva ativa em{' '}
-                    {format(currentDate, 'MMMM', { locale: ptBR })}.
+                    <span className="font-medium capitalize">{headerLabel}</span>.
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-5">
                     {agrupado.map(grupo => {
                         const cfg = STATUS_CONFIG[grupo.status]
                         return (
-                            <div key={grupo.status}>
-                                {/* Label do grupo */}
-                                <div className="flex items-center gap-2 mb-2">
-                                    <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        {cfg.label} · {grupo.items.length}
+                            <div key={grupo.status} className="space-y-2">
+                                {/* Separador de grupo */}
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                                    <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                                        {cfg.label}
                                     </span>
+                                    <span className="text-[11px] text-muted-foreground/60 font-medium">
+                                        · {grupo.items.length}
+                                    </span>
+                                    <div className="flex-1 h-px bg-border/60" />
                                 </div>
 
-                                <div className="space-y-2">
-                                    {grupo.items.map(reserva => {
-                                        const ci = typeof reserva.dataCheckin === 'string' ? parseISO(reserva.dataCheckin) : reserva.dataCheckin
-                                        const co = typeof reserva.dataCheckout === 'string' ? parseISO(reserva.dataCheckout) : reserva.dataCheckout
-                                        const noites = differenceInCalendarDays(co, ci)
-                                        const acomodacao = acomodacoes.find(a => a.id === reserva.acomodacaoId)
+                                {/* Cards */}
+                                {grupo.items.map(reserva => {
+                                    const ci  = typeof reserva.dataCheckin  === 'string' ? parseISO(reserva.dataCheckin)  : reserva.dataCheckin
+                                    const co  = typeof reserva.dataCheckout === 'string' ? parseISO(reserva.dataCheckout) : reserva.dataCheckout
+                                    const noites = differenceInCalendarDays(co, ci)
+                                    const acomodacao = acomodacoes.find(a => a.id === reserva.acomodacaoId)
+                                    const valor = Number(reserva.valorTotal || 0)
 
-                                        return (
-                                            <div
-                                                key={reserva.id}
-                                                className="rounded-lg border bg-card p-3 flex gap-3 active:scale-[0.98] cursor-pointer transition-transform"
-                                                onClick={() => onReservaClick(reserva.id)}
-                                            >
-                                                {/* Barra lateral colorida */}
-                                                <div className={`w-1 rounded-full shrink-0 self-stretch ${cfg.dot}`} />
+                                    return (
+                                        <div
+                                            key={reserva.id}
+                                            className={`rounded-xl border overflow-hidden flex cursor-pointer active:scale-[0.98] transition-transform shadow-sm ${cfg.bg}`}
+                                            onClick={() => onReservaClick(reserva.id)}
+                                        >
+                                            {/* Faixa lateral colorida */}
+                                            <div className="w-1 shrink-0 self-stretch" style={{ background: cfg.accent }} />
 
-                                                <div className="flex-1 min-w-0">
-                                                    {/* Nome do hóspede + badge */}
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        <p className="font-semibold text-sm truncate leading-tight">
-                                                            {reserva.hospede?.nome || '—'}
-                                                        </p>
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={`text-[10px] shrink-0 px-1.5 py-0 border ${cfg.badge}`}
-                                                        >
-                                                            {cfg.label}
-                                                        </Badge>
-                                                    </div>
-
-                                                    {/* Quarto */}
-                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <BedDouble className="h-3 w-3 shrink-0" />
-                                                        <span className="truncate">{acomodacao?.nome || '—'}</span>
-                                                    </div>
-
-                                                    {/* Datas e noites */}
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                                        <Clock className="h-3 w-3 shrink-0" />
-                                                        <span>
-                                                            {format(ci, 'dd/MM')} → {format(co, 'dd/MM')}
+                                            <div className="flex-1 min-w-0 px-3 py-2.5 space-y-1.5">
+                                                {/* Linha 1: nome + valor */}
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <p className={`font-semibold text-sm leading-tight truncate ${cfg.text}`}>
+                                                        {reserva.hospede?.nome || '—'}
+                                                    </p>
+                                                    {valor > 0 && (
+                                                        <span className={`text-xs font-bold shrink-0 ${cfg.text}`}>
+                                                            R$ {valor.toFixed(2).replace('.', ',')}
                                                         </span>
-                                                        <span className="text-muted-foreground/50">·</span>
-                                                        <span>{noites} noite{noites !== 1 ? 's' : ''}</span>
-                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Linha 2: quarto + datas + noites */}
+                                                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                                    <span className="flex items-center gap-1 shrink-0">
+                                                        <BedDouble className="h-3 w-3" />
+                                                        <span className="truncate max-w-[120px]">{acomodacao?.nome || '—'}</span>
+                                                    </span>
+                                                    <span className="text-border/60">·</span>
+                                                    <span className="shrink-0">
+                                                        {format(ci, "dd/MM")} → {format(co, "dd/MM")}
+                                                    </span>
+                                                    <span className="flex items-center gap-0.5 shrink-0 text-muted-foreground/70">
+                                                        <Moon className="h-2.5 w-2.5" />
+                                                        {noites} noite{noites !== 1 ? 's' : ''}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        )
-                                    })}
-                                </div>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )
                     })}

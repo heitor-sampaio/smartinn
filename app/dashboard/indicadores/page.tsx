@@ -20,8 +20,8 @@ export default async function IndicadoresPage() {
     const indicatorsData = await getDashboardIndicators()
 
     return (
-        <div className="flex-1 space-y-4 p-3 md:p-8 pt-4 md:pt-6">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
+        <div className="flex-1 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h2 className="text-xl md:text-3xl font-bold tracking-tight">Central de Indicadores (BI)</h2>
                     <p className="text-muted-foreground mt-1 text-sm">

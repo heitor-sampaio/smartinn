@@ -13,9 +13,10 @@ import {
     BedDouble, TrendingUp, ShoppingCart, Users, Moon, MapPin, Clock,
     CalendarDays, Repeat2, XCircle, UserX, Receipt, Wrench, Percent,
     Package, Star, TrendingDown, Award, Layers, Hash,
-    Droplets, Zap, Megaphone, Landmark, Handshake
+    Droplets, Zap, Megaphone, Landmark, Handshake, ChevronDown
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getDashboardIndicators } from '@/actions/indicadores'
@@ -176,9 +177,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     )
 }
 
+type TabValue = 'hospedagem' | 'financeiro' | 'consumos'
+const TAB_OPTIONS: { value: TabValue; label: string; icon: React.ElementType }[] = [
+    { value: 'hospedagem', label: 'Hospedagem',      icon: BedDouble    },
+    { value: 'financeiro', label: 'Financeiro',       icon: TrendingUp   },
+    { value: 'consumos',   label: 'Extras & Consumo', icon: ShoppingCart },
+]
+
 export function DashboardIndicators({ data: initialData }: { data: any | null }) {
     const [data, setData] = useState(initialData)
     const [period, setPeriod] = useState<Period>('30d')
+    const [activeTab, setActiveTab] = useState<TabValue>('hospedagem')
     const [customStart, setCustomStart] = useState('')
     const [customEnd, setCustomEnd] = useState('')
     const [isPending, startTransition] = useTransition()
@@ -217,10 +226,68 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
         </div>
     )
 
+    const activeTabMeta = TAB_OPTIONS.find(t => t.value === activeTab)!
+    const activePeriodLabel = PERIODS.find(p => p.value === period)?.label ?? 'Período'
+
     return (
         <div className="space-y-4">
-            {/* Seletor de período */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* ── Mobile: 2 botões dropdown ── */}
+            <div className="flex gap-2 md:hidden">
+                {/* Dropdown de categoria */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-between gap-2" disabled={isPending}>
+                            <span className="flex items-center gap-2 min-w-0">
+                                <activeTabMeta.icon className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{activeTabMeta.label}</span>
+                            </span>
+                            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                        {TAB_OPTIONS.map(t => (
+                            <DropdownMenuItem key={t.value} onClick={() => setActiveTab(t.value)}
+                                className={activeTab === t.value ? 'bg-muted font-medium' : ''}>
+                                <t.icon className="h-4 w-4 mr-2 shrink-0" />
+                                {t.label}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Dropdown de período */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-between gap-2" disabled={isPending}>
+                            <span className="truncate">{activePeriodLabel}</span>
+                            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        {PERIODS.map(p => (
+                            <DropdownMenuItem key={p.value} onClick={() => handlePeriodSelect(p.value)}
+                                className={period === p.value ? 'bg-muted font-medium' : ''}>
+                                {p.label}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Mobile: datas personalizadas */}
+            {period === 'custom' && (
+                <div className="flex flex-wrap items-center gap-2 md:hidden">
+                    <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="flex-1 min-w-0" max={customEnd || undefined} />
+                    <span className="text-sm text-muted-foreground">–</span>
+                    <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="flex-1 min-w-0" min={customStart || undefined} />
+                    <Button size="sm" onClick={applyCustom} disabled={!customStart || !customEnd || isPending} className="w-full">
+                        {isPending ? 'Carregando...' : 'Aplicar'}
+                    </Button>
+                </div>
+            )}
+
+            {/* ── Desktop: seletor de período original ── */}
+            <div className="hidden md:flex flex-wrap items-center gap-2">
                 {PERIODS.map(p => (
                     <Button
                         key={p.value}
@@ -245,15 +312,16 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
             </div>
 
             <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                <Tabs defaultValue="hospedagem" className="space-y-4 overflow-x-hidden">
-                    <TabsList>
-                        <TabsTrigger value="hospedagem" className="flex items-center gap-1.5">
+                <Tabs value={activeTab} onValueChange={v => setActiveTab(v as TabValue)} className="space-y-4 overflow-x-hidden">
+                    {/* Desktop: TabsList visível */}
+                    <TabsList className="hidden md:grid md:grid-cols-3 w-full">
+                        <TabsTrigger value="hospedagem" className="flex items-center justify-center gap-1.5">
                             <BedDouble className="h-4 w-4" /> Hospedagem
                         </TabsTrigger>
-                        <TabsTrigger value="financeiro" className="flex items-center gap-1.5">
+                        <TabsTrigger value="financeiro" className="flex items-center justify-center gap-1.5">
                             <TrendingUp className="h-4 w-4" /> Financeiro
                         </TabsTrigger>
-                        <TabsTrigger value="consumos" className="flex items-center gap-1.5">
+                        <TabsTrigger value="consumos" className="flex items-center justify-center gap-1.5">
                             <ShoppingCart className="h-4 w-4" /> Extras & Consumo
                         </TabsTrigger>
                     </TabsList>
@@ -261,140 +329,11 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                     {/* ───────────────────────────────────────────
                         ABA 1: HOSPEDAGEM
                     ─────────────────────────────────────────── */}
-                    <TabsContent value="hospedagem" className="space-y-6 pt-2">
+                    <TabsContent value="hospedagem" className="space-y-3 md:space-y-6 pt-1">
 
                         {/* Hóspedes & Ocupação */}
                         <section className="space-y-3">
                             <SectionLabel>Hóspedes & Ocupação</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Percent className="h-3.5 w-3.5" /> Taxa de Ocupação
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.taxaOcupacao} format={fmtPct1} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Diárias vendidas sobre a capacidade total do período</p>
-                                        <Sparkline data={data.hospedagemSeries?.ocupacao ?? []} label="Ocupação" formatter={fmtPct1} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Users className="h-3.5 w-3.5" /> Total de Hóspedes
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold"><KpiValue value={data.totalHospedes} format={fmtInt} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Hóspedes únicos com check-in no período</p>
-                                        <Sparkline data={data.hospedagemSeries?.reservas ?? []} label="Reservas" formatter={fmtInt} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Repeat2 className="h-3.5 w-3.5" /> Taxa de Retorno
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.taxaRetorno} format={fmtPct1} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Hóspedes do período com mais de uma reserva concluída
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <CalendarDays className="h-3.5 w-3.5" /> Antecedência das Reservas
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold"><KpiValue value={data.leadTime} format={v => `${v.toFixed(1)} dias`} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Dias antes do check-in que os hóspedes costumam reservar</p>
-                                        <Sparkline data={data.hospedagemSeries?.leadTime ?? []} label="Antecedência" formatter={v => `${v.toFixed(1)} dias`} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Moon className="h-3.5 w-3.5" /> Tempo Médio de Estadia
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold">
-                                            {Number(data.tempoMedioEstadia) > 0 ? <KpiValue value={data.tempoMedioEstadia} format={v => `${v.toFixed(1)} noites`} /> : 'N/D'}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Média de diárias por reserva (LOS)</p>
-                                        <Sparkline data={data.hospedagemSeries?.los ?? []} label="LOS" formatter={v => `${v.toFixed(1)} noites`} />
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </section>
-
-                        {/* Qualidade & Operacional */}
-                        <section className="space-y-3">
-                            <SectionLabel>Qualidade & Operacional</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Users className="h-3.5 w-3.5" /> Hóspedes por Estadia
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold">
-                                            {Number(data.mediaHospedesPorEstadia) > 0 ? <KpiValue value={data.mediaHospedesPorEstadia} format={v => `${v.toFixed(1)} pax`} /> : 'N/D'}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Média de pessoas por reserva registrada</p>
-                                        <Sparkline data={data.hospedagemSeries?.pax ?? []} label="Pax" formatter={v => `${v.toFixed(1)} pax`} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <Clock className="h-3.5 w-3.5" /> Tempo Médio de Limpeza
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold">
-                                            {data.tempoMedioLimpezaMin === null
-                                                ? 'N/D'
-                                                : <KpiValue value={data.tempoMedioLimpezaMin} format={v => { const m = Math.round(v); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}min` }} />}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Média das tarefas de limpeza concluídas</p>
-                                        <Sparkline data={data.hospedagemSeries?.limpeza ?? []} label="Limpeza" formatter={v => { const m = Math.round(v); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}min` }} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <XCircle className="h-3.5 w-3.5" /> Taxa de Cancelamentos
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.cancelationRate} format={fmtPct1} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Porcentagem de reservas totais que foram canceladas</p>
-                                        <Sparkline data={data.hospedagemSeries?.cancelRate ?? []} stroke="hsl(var(--destructive))" label="Cancelamentos" formatter={fmtPct1} />
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardDescription className="flex items-center gap-1.5">
-                                            <UserX className="h-3.5 w-3.5" /> No Show
-                                        </CardDescription>
-                                        <CardTitle className="text-2xl font-bold text-orange-500"><KpiValue value={data.taxaNoShow} format={fmtPct1} /></CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">{data.totalNoShows} reserva{data.totalNoShows !== 1 ? 's' : ''} sem comparecimento no período</p>
-                                        <Sparkline data={data.hospedagemSeries?.noShowRate ?? []} stroke="hsl(26, 90%, 55%)" label="No Show" formatter={fmtPct1} />
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </section>
-
-                        {/* Análises Gráficas */}
-                        <section className="space-y-4">
-                            <SectionLabel>Análises</SectionLabel>
 
                             {/* Volume de Reservas — largura total */}
                             <Card>
@@ -421,17 +360,145 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                                 </CardContent>
                             </Card>
 
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-5">
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Percent className="h-3.5 w-3.5" /> Taxa de Ocupação
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Diárias vendidas sobre a capacidade total do período</p>
+                                        <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.taxaOcupacao} format={fmtPct1} /></CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.ocupacao ?? []} label="Ocupação" formatter={fmtPct1} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Users className="h-3.5 w-3.5" /> Total de Hóspedes
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Hóspedes únicos com check-in no período</p>
+                                        <CardTitle className="text-2xl font-bold"><KpiValue value={data.totalHospedes} format={fmtInt} /></CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.reservas ?? []} label="Reservas" formatter={fmtInt} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-2">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Repeat2 className="h-3.5 w-3.5" /> Taxa de Retorno
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Hóspedes do período com mais de uma reserva concluída</p>
+                                        <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.taxaRetorno} format={fmtPct1} /></CardTitle>
+                                    </CardHeader>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <CalendarDays className="h-3.5 w-3.5" /> Antecedência das Reservas
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Dias antes do check-in que os hóspedes costumam reservar</p>
+                                        <CardTitle className="text-2xl font-bold"><KpiValue value={data.leadTime} format={v => `${v.toFixed(1)} dias`} /></CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.leadTime ?? []} label="Antecedência" formatter={v => `${v.toFixed(1)} dias`} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Moon className="h-3.5 w-3.5" /> Tempo Médio de Estadia
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Média de diárias por reserva (LOS)</p>
+                                        <CardTitle className="text-2xl font-bold">
+                                            {Number(data.tempoMedioEstadia) > 0 ? <KpiValue value={data.tempoMedioEstadia} format={v => `${v.toFixed(1)} noites`} /> : 'N/D'}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.los ?? []} label="LOS" formatter={v => `${v.toFixed(1)} noites`} />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </section>
+
+                        {/* Qualidade & Operacional */}
+                        <section className="space-y-3">
+                            <SectionLabel>Qualidade & Operacional</SectionLabel>
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Users className="h-3.5 w-3.5" /> Hóspedes por Estadia
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Média de pessoas por reserva registrada</p>
+                                        <CardTitle className="text-2xl font-bold">
+                                            {Number(data.mediaHospedesPorEstadia) > 0 ? <KpiValue value={data.mediaHospedesPorEstadia} format={v => `${v.toFixed(1)} pax`} /> : 'N/D'}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.pax ?? []} label="Pax" formatter={v => `${v.toFixed(1)} pax`} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <Clock className="h-3.5 w-3.5" /> Tempo Médio de Limpeza
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Média das tarefas de limpeza concluídas</p>
+                                        <CardTitle className="text-2xl font-bold">
+                                            {data.tempoMedioLimpezaMin === null
+                                                ? 'N/D'
+                                                : <KpiValue value={data.tempoMedioLimpezaMin} format={v => { const m = Math.round(v); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}min` }} />}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.limpeza ?? []} label="Limpeza" formatter={v => { const m = Math.round(v); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}min` }} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <XCircle className="h-3.5 w-3.5" /> Taxa de Cancelamentos
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Porcentagem de reservas totais que foram canceladas</p>
+                                        <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.cancelationRate} format={fmtPct1} /></CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.cancelRate ?? []} stroke="hsl(var(--destructive))" label="Cancelamentos" formatter={fmtPct1} />
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="p-3 pb-1">
+                                        <CardDescription className="flex items-center gap-1.5">
+                                            <UserX className="h-3.5 w-3.5" /> No Show
+                                        </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">{data.totalNoShows} reserva{data.totalNoShows !== 1 ? 's' : ''} sem comparecimento no período</p>
+                                        <CardTitle className="text-2xl font-bold text-orange-500"><KpiValue value={data.taxaNoShow} format={fmtPct1} /></CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="px-3 pb-3 pt-0">
+                                        <Sparkline data={data.hospedagemSeries?.noShowRate ?? []} stroke="hsl(26, 90%, 55%)" label="No Show" formatter={fmtPct1} />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </section>
+
+                        {/* Demografia */}
+                        <section className="space-y-4">
+                            <SectionLabel>Demografia</SectionLabel>
+
                             {/* Cidades + Comportamento lado a lado */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <MapPin className="h-3.5 w-3.5" /> Principais Cidades de Origem
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="pt-2">
+                                    <CardContent className="px-3 pb-3 pt-2">
                                         {data.principaisCidades.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">Sem dados de cidade cadastrados.</p>
+                                            <p className="text-[10px] text-muted-foreground/60 leading-snug">Sem dados de cidade cadastrados.</p>
                                         ) : (
                                             <ol className="space-y-2">
                                                 {(() => {
@@ -483,57 +550,57 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                     {/* ───────────────────────────────────────────
                         ABA 2: FINANCEIRO
                     ─────────────────────────────────────────── */}
-                    <TabsContent value="financeiro" className="space-y-6 pt-2">
+                    <TabsContent value="financeiro" className="space-y-3 md:space-y-6 pt-1">
 
                         {/* Preço & Eficiência */}
                         <section className="space-y-3">
                             <SectionLabel>Preço & Eficiência</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <BedDouble className="h-3.5 w-3.5" /> ADR — Diária Média
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Preço médio pago por noite de estadia</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.adr} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Preço médio pago por noite de estadia</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.adr ?? []} label="ADR" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <TrendingUp className="h-3.5 w-3.5" /> RevPAR
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Receita por quarto disponível, incluindo noites vazias</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.revpar} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Receita por quarto disponível, incluindo noites vazias</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.revpar ?? []} label="RevPAR" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Receipt className="h-3.5 w-3.5" /> Ticket Médio por Reserva
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Valor médio por hospedagem incluindo diária e consumos</p>
                                         <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.ticketMedio} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Valor médio por hospedagem incluindo diária e consumos</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.ticket ?? []} label="Ticket Médio" stroke="hsl(var(--primary))" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Users className="h-3.5 w-3.5" /> LTV Médio por Hóspede
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Receita média gerada por hóspede único no período</p>
                                         <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.ltvMedio} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Receita média gerada por hóspede único no período</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.receita ?? []} label="Receita" stroke="hsl(var(--primary))" />
                                     </CardContent>
                                 </Card>
@@ -543,52 +610,52 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                         {/* Faturamento no Período */}
                         <section className="space-y-3">
                             <SectionLabel>Faturamento no Período</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <CalendarDays className="h-3.5 w-3.5" /> Faturamento Médio / Mês
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Receita de diárias por mês no período selecionado</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.mediaFaturamentoMensal} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Receita de diárias por mês no período selecionado</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.receita ?? []} label="Receita" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <CalendarDays className="h-3.5 w-3.5" /> Faturamento Médio / Semana
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Receita de diárias por semana no período selecionado</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.mediaFaturamentoSemanal} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Receita de diárias por semana no período selecionado</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.receita ?? []} label="Receita" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <ShoppingCart className="h-3.5 w-3.5" /> Receita de Extras / Mês
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Receita média mensal gerada por consumos extras</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.receitaMediaMensalConsumo} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Receita média mensal gerada por consumos extras</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.extras ?? []} label="Extras" stroke="#16a34a" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <ShoppingCart className="h-3.5 w-3.5" /> Gasto Extra por Hospedagem
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Quanto cada hóspede gasta em extras além da diária</p>
                                         <CardTitle className="text-2xl font-bold text-green-600"><KpiValue value={data.receitaExtraPorHospedagem} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Quanto cada hóspede gasta em extras além da diária</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.extrasPerBooking ?? []} label="Extra/Reserva" stroke="#16a34a" />
                                     </CardContent>
                                 </Card>
@@ -598,76 +665,76 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                         {/* Custos Operacionais */}
                         <section className="space-y-3">
                             <SectionLabel>Custos Operacionais / Mês</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Wrench className="h-3.5 w-3.5" /> Manutenção
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Gasto médio por mês com reparos e manutenção</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalManutencao} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Gasto médio por mês com reparos e manutenção</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.manutencao ?? []} stroke="hsl(var(--destructive))" label="Manutenção" />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Droplets className="h-3.5 w-3.5" /> Água
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Custo médio mensal com conta de água</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalAgua} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Custo médio mensal com conta de água</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.agua ?? []} stroke="hsl(var(--destructive))" label="Água" />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Zap className="h-3.5 w-3.5" /> Energia
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Custo médio mensal com energia elétrica</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalEnergia} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Custo médio mensal com energia elétrica</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.energia ?? []} stroke="hsl(var(--destructive))" label="Energia" />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Megaphone className="h-3.5 w-3.5" /> Marketing
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Gasto médio mensal com divulgação e publicidade</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalMarketing} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Gasto médio mensal com divulgação e publicidade</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.marketing ?? []} stroke="hsl(var(--destructive))" label="Marketing" />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Landmark className="h-3.5 w-3.5" /> Impostos
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Custo médio mensal com tributos e obrigações fiscais</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalImpostos} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Custo médio mensal com tributos e obrigações fiscais</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.impostos ?? []} stroke="hsl(var(--destructive))" label="Impostos" />
                                     </CardContent>
                                 </Card>
                                 <Card className="bg-destructive/5 dark:bg-destructive/10 border-destructive/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Handshake className="h-3.5 w-3.5" /> Comissões
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Custo médio mensal com comissões pagas a OTAs e parceiros</p>
                                         <CardTitle className="text-2xl font-bold text-destructive"><KpiValue value={data.custoMedioMensalComissoes} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Custo médio mensal com comissões pagas a OTAs e parceiros</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.custosSeries?.comissoes ?? []} stroke="hsl(var(--destructive))" label="Comissões" />
                                     </CardContent>
                                 </Card>
@@ -708,57 +775,53 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                     {/* ───────────────────────────────────────────
                         ABA 3: EXTRAS & CONSUMO
                     ─────────────────────────────────────────── */}
-                    <TabsContent value="consumos" className="space-y-6 pt-2">
+                    <TabsContent value="consumos" className="space-y-3 md:space-y-6 pt-1">
 
                         {/* Engajamento de Consumo */}
                         <section className="space-y-3">
                             <SectionLabel>Engajamento de Consumo</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Percent className="h-3.5 w-3.5" /> Taxa de Consumo
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">{data.reservasComConsumo} reserva{data.reservasComConsumo !== 1 ? 's' : ''} realizaram consumo extra no período</p>
                                         <CardTitle className="text-2xl font-bold text-primary"><KpiValue value={data.taxaConsumo} format={fmtPct1} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">{data.reservasComConsumo} reserva{data.reservasComConsumo !== 1 ? 's' : ''} realizaram consumo extra no período</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.extras ?? []} label="Receita de Extras" stroke="#16a34a" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Hash className="h-3.5 w-3.5" /> Média de Itens por Estadia
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Itens extras consumidos por reserva que consumiu</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.mediaItensConsumo} format={fmtDec1} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Itens extras consumidos por reserva que consumiu
-                                    </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-1">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Receipt className="h-3.5 w-3.5" /> Ticket Médio de Consumo
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Gasto médio em extras das reservas que consumiram</p>
                                         <CardTitle className="text-2xl font-bold text-green-600"><KpiValue value={data.ticketConsumo} format={fmtCur} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                        <p className="text-xs text-muted-foreground">Gasto médio em extras das reservas que consumiram</p>
+                                    <CardContent className="px-3 pb-3 pt-0">
                                         <Sparkline data={data.financialSeries?.extrasPerBooking ?? []} label="Extra/Reserva" stroke="#16a34a" />
                                     </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Award className="h-3.5 w-3.5" /> Categoria Mais Lucrativa
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Categoria que gerou mais receita com extras no período</p>
                                         <CardTitle className="text-xl font-bold leading-tight mt-1">{data.categoriaMaisLucrativa}</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Categoria que gerou mais receita com extras no período
-                                    </CardContent>
                                 </Card>
                             </div>
                         </section>
@@ -766,28 +829,24 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                         {/* Catálogo Ativo */}
                         <section className="space-y-3">
                             <SectionLabel>Catálogo Ativo</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2">
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Package className="h-3.5 w-3.5" /> Produtos Cadastrados
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Itens ativos nas categorias Frigobar, Restaurante e Outros</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.totalProdutosCatalogo} format={fmtInt} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Itens ativos nas categorias Frigobar, Restaurante e Outros
-                                    </CardContent>
                                 </Card>
                                 <Card>
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <Layers className="h-3.5 w-3.5" /> Serviços Cadastrados
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Itens ativos nas categorias Serviço e Passeio</p>
                                         <CardTitle className="text-2xl font-bold"><KpiValue value={data.totalServicosCatalogo} format={fmtInt} /></CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Itens ativos nas categorias Serviço e Passeio
-                                    </CardContent>
                                 </Card>
                             </div>
                         </section>
@@ -795,32 +854,28 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                         {/* Rankings de Produtos */}
                         <section className="space-y-3">
                             <SectionLabel>Rankings de Produtos</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2">
                                 <Card className="bg-primary/5 border-primary/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="text-primary font-medium flex items-center gap-1.5">
                                             <Star className="h-3.5 w-3.5" /> Produto Mais Consumido
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Produto (Frigobar / Restaurante / Outro) mais vendido no período</p>
                                         <CardTitle className="text-xl font-bold leading-tight mt-1">
                                             {data.produtoMaisConsumido}
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Produto (Frigobar / Restaurante / Outro) mais vendido no período
-                                    </CardContent>
                                 </Card>
                                 <Card className="bg-muted/30">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <TrendingDown className="h-3.5 w-3.5" /> Produto Menos Consumido
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Produto com menor quantidade vendida — candidato à revisão</p>
                                         <CardTitle className="text-xl font-bold leading-tight mt-1">
                                             {data.produtoMenosConsumido}
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Produto com menor quantidade vendida — candidato à revisão
-                                    </CardContent>
                                 </Card>
                             </div>
                         </section>
@@ -828,32 +883,28 @@ export function DashboardIndicators({ data: initialData }: { data: any | null })
                         {/* Rankings de Serviços */}
                         <section className="space-y-3">
                             <SectionLabel>Rankings de Serviços</SectionLabel>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2 md:gap-4 md:grid-cols-2">
                                 <Card className="bg-primary/5 border-primary/20">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="text-primary font-medium flex items-center gap-1.5">
                                             <Star className="h-3.5 w-3.5" /> Serviço Mais Contratado
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Serviço ou passeio mais vendido no período</p>
                                         <CardTitle className="text-xl font-bold leading-tight mt-1">
                                             {data.servicoMaisConsumido}
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Serviço ou passeio mais vendido no período
-                                    </CardContent>
                                 </Card>
                                 <Card className="bg-muted/30">
-                                    <CardHeader className="pb-2">
+                                    <CardHeader className="p-3 pb-2">
                                         <CardDescription className="flex items-center gap-1.5">
                                             <TrendingDown className="h-3.5 w-3.5" /> Serviço Menos Contratado
                                         </CardDescription>
+                                        <p className="text-[10px] text-muted-foreground/60 leading-snug">Serviço com menor demanda — candidato à promoção ou remoção</p>
                                         <CardTitle className="text-xl font-bold leading-tight mt-1">
                                             {data.servicoMenosConsumido}
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="text-xs text-muted-foreground pt-0">
-                                        Serviço com menor demanda — candidato à promoção ou remoção
-                                    </CardContent>
                                 </Card>
                             </div>
                         </section>

@@ -103,37 +103,37 @@ export function FinanceiroClient({ initialData, mesAtual, anoAtual }: Financeiro
     return (
         <div className="space-y-4">
             {/* Cards Analytics Macro */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-2 md:gap-4 md:grid-cols-3">
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
                         <h3 className="tracking-tight text-sm font-medium text-emerald-600">Entradas</h3>
                         <ArrowUpCircle className="h-4 w-4 text-emerald-600" />
                     </div>
-                    <div className="p-6 pt-0">
-                        <div className="text-2xl font-bold text-emerald-600 text-green-500">
+                    <div className="p-3 pt-0 md:p-6 md:pt-0">
+                        <div className="text-2xl font-bold text-emerald-600">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalEntradas)}
                         </div>
                     </div>
                 </div>
 
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
                         <h3 className="tracking-tight text-sm font-medium text-rose-600">Saídas (Despesas)</h3>
                         <ArrowDownCircle className="h-4 w-4 text-rose-600" />
                     </div>
-                    <div className="p-6 pt-0">
-                        <div className="text-2xl font-bold text-rose-600 text-red-500">
+                    <div className="p-3 pt-0 md:p-6 md:pt-0">
+                        <div className="text-2xl font-bold text-rose-600">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSaidas)}
                         </div>
                     </div>
                 </div>
 
                 <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="p-3 md:p-6 flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
                         <h3 className="tracking-tight text-sm font-medium">Saldo Líquido</h3>
                         <Receipt className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="p-6 pt-0">
+                    <div className="p-3 pt-0 md:p-6 md:pt-0">
                         <div className={`text-2xl font-bold ${saldoLiquido >= 0 ? 'text-primary' : 'text-red-500'}`}>
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoLiquido)}
                         </div>
@@ -188,7 +188,72 @@ export function FinanceiroClient({ initialData, mesAtual, anoAtual }: Financeiro
                 </div>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile: lista de cards */}
+            <div className="md:hidden space-y-2">
+                {filtered.length === 0 ? (
+                    <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+                        Nenhum lançamento financeiro registrado.
+                    </div>
+                ) : filtered.map((item) => (
+                    <div
+                        key={item.id}
+                        className="rounded-xl border bg-card overflow-hidden flex shadow-sm"
+                    >
+                        {/* Faixa lateral colorida */}
+                        <div className={`w-1 shrink-0 self-stretch ${item.tipo === 'ENTRADA' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+
+                        <div className="flex-1 min-w-0 px-3 py-2.5">
+                            {/* Linha 1: descrição + valor */}
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="font-semibold text-sm leading-tight truncate">
+                                    {item.descricao}
+                                </p>
+                                <span className={`text-sm font-bold shrink-0 ${item.tipo === 'ENTRADA' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {item.tipo === 'SAIDA' ? '−' : '+'}
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
+                                </span>
+                            </div>
+
+                            {/* Linha 2: data · categoria · forma pagto */}
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                                <span className="shrink-0">
+                                    {item.data ? format(new Date(item.data), "dd/MM/yy", { locale: ptBR }) : '—'}
+                                </span>
+                                {item.categoria && (
+                                    <>
+                                        <span className="text-border/60">·</span>
+                                        <span className="bg-muted px-1.5 py-0.5 rounded text-foreground/70 shrink-0">
+                                            {item.categoria}
+                                        </span>
+                                    </>
+                                )}
+                                {item.formaPagamento && (
+                                    <>
+                                        <span className="text-border/60">·</span>
+                                        <span className="shrink-0">{item.formaPagamento.replace(/_/g, ' ')}</span>
+                                    </>
+                                )}
+                                {item.reservaId && (
+                                    <>
+                                        <span className="text-border/60">·</span>
+                                        <span className="font-mono shrink-0">#{item.reservaId.slice(0, 6).toUpperCase()}</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Botão excluir */}
+                        <div className="flex items-center pr-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(item.id)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop: tabela original */}
+            <div className="hidden md:block rounded-lg border overflow-x-auto">
                 <Table className="min-w-[640px]">
                     <TableHeader>
                         <TableRow>
@@ -222,7 +287,7 @@ export function FinanceiroClient({ initialData, mesAtual, anoAtual }: Financeiro
                                     </TableCell>
                                     <TableCell>
                                         {item.reservaId ? (
-                                            <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded border">
+                                            <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-1 rounded-md">
                                                 #{item.reservaId.slice(0, 6).toUpperCase()}
                                             </span>
                                         ) : (

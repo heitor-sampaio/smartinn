@@ -101,10 +101,10 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
 
     const getTipoIconAndColor = (tipo: string) => {
         switch (tipo) {
-            case 'LIMPEZA': return { icon: <Sparkles className="w-4 h-4" />, color: 'bg-blue-100 text-blue-800' }
-            case 'MANUTENCAO': return { icon: <Hammer className="w-4 h-4" />, color: 'bg-orange-100 text-orange-800' }
-            case 'PREPARACAO': return { icon: <Clock className="w-4 h-4" />, color: 'bg-purple-100 text-purple-800' }
-            default: return { icon: <CheckCircle2 className="w-4 h-4" />, color: 'bg-gray-100 text-gray-800' }
+            case 'LIMPEZA': return { icon: <Sparkles className="w-4 h-4" />, color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' }
+            case 'MANUTENCAO': return { icon: <Hammer className="w-4 h-4" />, color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' }
+            case 'PREPARACAO': return { icon: <Clock className="w-4 h-4" />, color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' }
+            default: return { icon: <CheckCircle2 className="w-4 h-4" />, color: 'bg-muted text-muted-foreground' }
         }
     }
 
@@ -174,7 +174,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
                                 <Button
                                     size="sm"
                                     onClick={() => handleUpdateStatus(t.id, 'EM_ANDAMENTO')}
-                                    className="h-7 text-xs w-full bg-blue-600 hover:bg-blue-700"
+                                    className="h-7 text-xs w-full bg-primary hover:bg-primary/90"
                                 >
                                     Iniciar
                                 </Button>
@@ -184,7 +184,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
                                     size="sm"
                                     variant="default"
                                     onClick={() => handleUpdateStatus(t.id, 'CONCLUIDA')}
-                                    className="h-7 text-xs w-full bg-green-600 hover:bg-green-700"
+                                    className="h-7 text-xs w-full bg-emerald-600 hover:bg-emerald-700"
                                 >
                                     Concluir
                                 </Button>
@@ -197,7 +197,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
                                     Editar
                                 </Button>
                                 {t.status !== 'EM_ANDAMENTO' && (
-                                    <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-red-600 hover:text-red-700" onClick={() => handleDelete(t.id)}>
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(t.id)}>
                                         Excluir
                                     </Button>
                                 )}
@@ -232,7 +232,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
     return (
         <div className="h-full flex flex-col">
             {!isEquipeMode && (
-                <div className="flex justify-end mb-4 shrink-0">
+                <div className="flex justify-end mb-3 shrink-0">
                     <Button onClick={openAdd}>
                         <Plus className="mr-2 h-4 w-4" /> Nova Tarefa
                     </Button>
@@ -240,7 +240,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
             )}
 
             {/* Mobile: colunas empilhadas crescendo com o conteúdo. Desktop: grid lado a lado fixo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 md:flex-1 md:min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 md:flex-1 md:min-h-0">
 
                 <Column
                     title="Pendente"
