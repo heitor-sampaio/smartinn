@@ -36,7 +36,7 @@ export function Sidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="hidden border-r bg-muted/40 md:flex md:flex-col w-64 min-h-screen">
+        <div className="hidden border-r bg-muted/40 md:flex md:flex-col min-h-screen">
             <div className="flex h-16 items-center border-b px-4 lg:px-6">
                 <Link href="/dashboard" className="flex items-center">
                     <Image

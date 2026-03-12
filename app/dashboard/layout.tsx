@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { ThemeSync } from '@/components/theme-sync'
 import prisma from '@/lib/prisma'
+import { getDashboardAlerts } from '@/actions/dashboard'
 
 export default async function DashboardLayout({
     children,
@@ -19,12 +20,12 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
-    const dbUser: any = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        include: { pousada: true }
-    });
+    const [dbUser, alerts] = await Promise.all([
+        prisma.usuario.findUnique({ where: { supabaseId: user.id }, include: { pousada: true } }),
+        getDashboardAlerts(),
+    ])
 
-    const modoTema = dbUser?.pousada?.modoTema || 'system';
+    const modoTema = (dbUser as any)?.pousada?.modoTema || 'system';
 
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] overflow-x-hidden">
@@ -33,7 +34,7 @@ export default async function DashboardLayout({
             <Sidebar />
             <div className="flex flex-col min-w-0">
                 {/* Header no topo */}
-                <Header email={user.email} />
+                <Header email={user.email} alerts={alerts} />
                 {/* Conteúdo dinâmico (páginas) */}
                 <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-8 min-w-0 overflow-x-hidden">
                     {children}

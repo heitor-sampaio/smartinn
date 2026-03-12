@@ -5,14 +5,12 @@ import {
     getDailyOperations,
     getAcomodacaoStatusSummary,
     getMonthlyFinancial,
-    getDashboardAlerts,
 } from '@/actions/dashboard'
 import { TrendingUp, XCircle, UserX } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { KanbanDiario } from './kanban-diario'
 import { RoomStatusBar } from './room-status-bar'
 import { MonthlyFinancial } from './monthly-financial'
-import { AlertsPanel } from './alerts-panel'
 
 export default async function DashboardPage() {
     const supabase = createClient()
@@ -27,13 +25,11 @@ export default async function DashboardPage() {
         { entradas, inHouse, saidas },
         roomStatus,
         monthlyFinancial,
-        alerts,
     ] = await Promise.all([
         getDashboardMetrics(),
         getDailyOperations(),
         getAcomodacaoStatusSummary(),
         getMonthlyFinancial(),
-        getDashboardAlerts(),
     ])
 
     const safeMetrics = metrics || {
@@ -50,14 +46,6 @@ export default async function DashboardPage() {
                     <p className="text-muted-foreground mt-1 text-sm">Visão geral das operações, indicadores e pendências da pousada.</p>
                 </div>
             </div>
-
-            {/* Alertas & Pendências */}
-            <AlertsPanel
-                urgentTasks={alerts.urgentTasks}
-                pendingReservas={alerts.pendingReservas}
-                maintenanceRooms={alerts.maintenanceRooms}
-                stockAlerts={alerts.stockAlerts}
-            />
 
             {/* Status dos Quartos */}
             <RoomStatusBar summary={roomStatus} />

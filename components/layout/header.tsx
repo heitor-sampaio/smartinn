@@ -9,6 +9,7 @@ import { signOut } from '@/actions/auth'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { AlertsSheet, type AlertsData } from './alerts-sheet'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,7 +21,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
-export function Header({ email }: { email?: string }) {
+export function Header({ email, alerts }: { email?: string; alerts: AlertsData }) {
     const pathname = usePathname()
 
     const getInitials = (email?: string) => {
@@ -29,7 +30,7 @@ export function Header({ email }: { email?: string }) {
     }
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 justify-between md:justify-end">
+        <header className="flex h-16 items-center gap-4 border-b bg-muted/40 px-4 lg:px-6 justify-between md:justify-end">
             {/* Mobile: menu hambúrguer + logo centralizada */}
             <div className="flex items-center gap-3 md:hidden">
                 <Sheet>
@@ -109,6 +110,9 @@ export function Header({ email }: { email?: string }) {
                     />
                 </Link>
             </div>
+
+            {/* Alertas */}
+            <AlertsSheet {...alerts} />
 
             {/* User Profile Dropdown */}
             <DropdownMenu>
