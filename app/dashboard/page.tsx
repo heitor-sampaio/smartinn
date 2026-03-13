@@ -22,7 +22,7 @@ export default async function DashboardPage() {
 
     const [
         metrics,
-        { entradas, inHouse, saidas },
+        { entradas, inHouse, saidas, pousadaId },
         roomStatus,
         monthlyFinancial,
     ] = await Promise.all([
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
             />
 
             {/* Kanban Diário */}
-            <KanbanDiario entradas={entradas} inHouse={inHouse} saidas={saidas} />
+            <KanbanDiario entradas={entradas} inHouse={inHouse} saidas={saidas} pousadaId={pousadaId} />
         </div>
     )
 }

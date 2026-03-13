@@ -55,6 +55,9 @@ const configSchema = z.object({
     estado: z.string().optional(),
 
     senhaEquipe: z.string().min(4, "Senha muito curta").optional().or(z.literal("")),
+    ramalRecepcao: z.string().optional(),
+    nomeWifi: z.string().optional(),
+    senhaWifi: z.string().optional(),
     modoTema: z.string().optional(),
     tarifasDinamicasAtivas: z.boolean(),
     tarifaFimDeSemana: z.number().min(0),
@@ -96,6 +99,9 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
             cidade: initialData?.cidade || '',
             estado: initialData?.estado || '',
             senhaEquipe: initialData?.senhaEquipe || '',
+            ramalRecepcao: initialData?.ramalRecepcao || '',
+            nomeWifi: initialData?.nomeWifi || '',
+            senhaWifi: initialData?.senhaWifi || '',
             modoTema: initialData?.modoTema || 'system',
             tarifasDinamicasAtivas: Boolean(initialData?.tarifasDinamicasAtivas),
             tarifaFimDeSemana: Number(initialData?.tarifaFimDeSemana) || 0,
@@ -262,6 +268,51 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
                                                 />
                                             </FormControl>
                                             <FormDescription>Usado em relatórios líquidos de faturamento.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="ramalRecepcao"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Ramal da Recepção</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ex: 100" {...field} />
+                                            </FormControl>
+                                            <FormDescription>Número interno para o hóspede ligar.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="nomeWifi"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nome da Rede Wi-Fi</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ex: Pousada_Guest" {...field} />
+                                            </FormControl>
+                                            <FormDescription>SSID exibido na ficha do hóspede.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="senhaWifi"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Senha do Wi-Fi</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ex: bemvindo2024" {...field} />
+                                            </FormControl>
+                                            <FormDescription>Exibida na ficha do hóspede após check-in.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}

@@ -39,6 +39,9 @@ model Pousada {
   taxaExpedia       Decimal                @default(0) @db.Decimal(5, 2)
   senhaEquipe       String?
   linkEquipe        String                 @unique @default(uuid())
+  ramalRecepcao     String?
+  nomeWifi          String?
+  senhaWifi         String?
 
   // Tarifas Dinâmicas (Acréscimos Base Diária Padrão)
   tarifasDinamicasAtivas Boolean           @default(false)
@@ -123,6 +126,7 @@ model Hospede {
   telefone       String?
   cpf            String?
   dataNascimento DateTime?
+  cep            String?
   endereco       String?
   cidade         String?
   estado         String?

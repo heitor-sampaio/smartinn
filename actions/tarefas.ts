@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { broadcastPousadaChange } from '@/lib/broadcast'
 import { cookies } from 'next/headers'
 
 // Helper de Autenticação e Segurança
@@ -110,6 +111,7 @@ export async function createTarefa(formData: FormData) {
         })
 
         revalidatePath('/dashboard/tarefas')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Tarefa adicionada ao quadro!' }
     } catch (err) {
         console.error("DEBUG TAREFA:", err)
@@ -127,6 +129,7 @@ export async function deleteTarefa(id: string) {
         await prisma.tarefa.delete({ where: { id } })
 
         revalidatePath('/dashboard/tarefas')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Tarefa excluída com sucesso!' }
     } catch (error) {
         return { error: 'Erro ao tentar deletar a tarefa.' }
@@ -180,7 +183,8 @@ export async function updateStatusTarefa(id: string, novoStatus: any, fallbackLi
         }
 
         revalidatePath('/dashboard/tarefas')
-        revalidatePath('/dashboard/acomodacoes') // Também invalida acomodações porque o quarto pode ter mudado
+        revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Card movido!' }
 
     } catch (error) {

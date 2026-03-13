@@ -1,21 +1,87 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, AlertTriangle, Clock, Wrench, CheckCircle, Package } from 'lucide-react'
-import { formatDistanceToNow, parseISO } from 'date-fns'
+import {
+    Bell, AlertTriangle, Clock, Wrench, CheckCircle, Package,
+    Sparkles, LogIn, UserX, LogOut, BellRing
+} from 'lucide-react'
+import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { createClient } from '@/utils/supabase/client'
 
 export interface AlertsData {
+    pousadaId: string
+    // Notificações
+    limpezasAtivas: { id: string; status: string; acomodacaoNome: string | null }[]
+    checkinsHoje: { id: string; hospedeNome: string; acomodacaoNome: string }[]
+    // Alertas
     urgentTasks: { id: string; titulo: string; acomodacaoNome: string | null }[]
-    pendingReservas: { id: string; hospedeNome: string; acomodacaoNome: string; criadoEm: string }[]
     maintenanceRooms: { id: string; nome: string }[]
-    stockAlerts: { id: string; nome: string; estoque: number; zerado: boolean }[]
+    pendingReservas: { id: string; hospedeNome: string; acomodacaoNome: string; criadoEm: string }[]
+    stockBaixo: { id: string; nome: string; estoque: number }[]
+    // Pendências
+    stockZerado: { id: string; nome: string }[]
+    noShows: { id: string; hospedeNome: string; acomodacaoNome: string; dataCheckin: string }[]
+    checkoutsAtrasados: { id: string; hospedeNome: string; acomodacaoNome: string; dataCheckout: string }[]
 }
 
-export function AlertsSheet({ urgentTasks, pendingReservas, maintenanceRooms, stockAlerts }: AlertsData) {
-    const total = urgentTasks.length + pendingReservas.length + maintenanceRooms.length + stockAlerts.length
+type Tab = 'notificacoes' | 'alertas' | 'pendencias'
+
+function SectionLabel({ icon, label, count, color }: { icon: React.ReactNode; label: string; count: number; color: string }) {
+    return (
+        <p className={`flex items-center gap-1.5 text-xs font-semibold mb-3 ${color}`}>
+            {icon} {label} ({count})
+        </p>
+    )
+}
+
+function EmptyState({ label }: { label: string }) {
+    return (
+        <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+            <CheckCircle className="h-7 w-7 text-emerald-500" />
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{label}</p>
+        </div>
+    )
+}
+
+export function AlertsSheet(props: AlertsData) {
+    const {
+        pousadaId,
+        limpezasAtivas, checkinsHoje,
+        urgentTasks, maintenanceRooms, pendingReservas, stockBaixo,
+        stockZerado, noShows, checkoutsAtrasados
+    } = props
+
+    const router = useRouter()
+    const [activeTab, setActiveTab] = useState<Tab>('notificacoes')
+
+    const totalNotif = limpezasAtivas.length + checkinsHoje.length
+    const totalAlertas = urgentTasks.length + maintenanceRooms.length + pendingReservas.length + stockBaixo.length
+    const totalPend = stockZerado.length + noShows.length + checkoutsAtrasados.length
+    const total = totalNotif + totalAlertas + totalPend
+
+    // Cor do badge da sino: vermelho se há pendências, âmbar se só alertas, azul se só notificações
+    const badgeColor = totalPend > 0 ? 'bg-red-500' : totalAlertas > 0 ? 'bg-amber-500' : 'bg-blue-500'
+    const pingColor = totalPend > 0 ? 'bg-red-400' : totalAlertas > 0 ? 'bg-amber-400' : 'bg-blue-400'
+
+    useEffect(() => {
+        if (!pousadaId) return
+        const supabase = createClient()
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => { router.refresh() })
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [pousadaId, router])
+
+    const tabs: { id: Tab; label: string; count: number; color: string }[] = [
+        { id: 'notificacoes', label: 'Notificações', count: totalNotif, color: 'text-blue-600 dark:text-blue-400' },
+        { id: 'alertas', label: 'Alertas', count: totalAlertas, color: 'text-amber-600 dark:text-amber-400' },
+        { id: 'pendencias', label: 'Pendências', count: totalPend, color: 'text-red-600 dark:text-red-400' },
+    ]
 
     return (
         <Sheet>
@@ -24,41 +90,113 @@ export function AlertsSheet({ urgentTasks, pendingReservas, maintenanceRooms, st
                     <Bell className="h-5 w-5" />
                     {total > 0 && (
                         <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingColor} opacity-75`} />
+                            <span className={`relative inline-flex h-2 w-2 rounded-full ${badgeColor}`} />
                         </span>
                     )}
-                    <span className="sr-only">Alertas e pendências</span>
+                    <span className="sr-only">Notificações</span>
                 </Button>
             </SheetTrigger>
 
             <SheetContent className="w-[360px] sm:w-[420px] flex flex-col p-0">
-                <SheetHeader className="px-5 pt-5 pb-4 border-b shrink-0">
+                <SheetHeader className="px-5 pt-5 pb-0 shrink-0">
                     <SheetTitle className="flex items-center gap-2 text-base">
-                        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                        Alertas & Pendências
+                        <BellRing className="h-4 w-4 text-primary shrink-0" />
+                        Central de Notificações
                         {total > 0 && (
-                            <span className="ml-auto text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-semibold px-1.5 py-0.5 rounded-full">
+                            <span className="ml-auto text-xs bg-muted font-semibold px-1.5 py-0.5 rounded-full">
                                 {total}
                             </span>
                         )}
                     </SheetTitle>
+
+                    {/* Tabs */}
+                    <div className="flex gap-1 mt-4 border-b">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-1 pb-2.5 text-xs font-medium transition-colors relative ${
+                                    activeTab === tab.id
+                                        ? `${tab.color} after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-current after:rounded-t`
+                                        : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                            >
+                                {tab.label}
+                                {tab.count > 0 && (
+                                    <span className={`ml-1 text-[10px] font-bold px-1 py-0.5 rounded-full ${
+                                        tab.id === 'pendencias' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                                        tab.id === 'alertas' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                        'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                                    }`}>
+                                        {tab.count}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </SheetHeader>
 
                 <div className="flex-1 overflow-y-auto px-5 divide-y">
-                    {total === 0 ? (
-                        <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-                            <CheckCircle className="h-8 w-8 text-emerald-500" />
-                            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Sem alertas no momento</p>
-                        </div>
-                    ) : (
-                        <>
+
+                    {/* ── NOTIFICAÇÕES ── */}
+                    {activeTab === 'notificacoes' && (
+                        totalNotif === 0 ? <EmptyState label="Sem notificações no momento" /> : <>
+                            {limpezasAtivas.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<Sparkles className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Limpezas solicitadas"
+                                        count={limpezasAtivas.length}
+                                        color="text-blue-600 dark:text-blue-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {limpezasAtivas.map(t => (
+                                            <li key={t.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <span className={`h-2 w-2 rounded-full shrink-0 ${t.status === 'EM_ANDAMENTO' ? 'bg-blue-500' : 'bg-amber-400'}`} />
+                                                <span className="font-medium text-foreground">{t.acomodacaoNome ?? '—'}</span>
+                                                <span className="text-xs ml-auto shrink-0">
+                                                    {t.status === 'EM_ANDAMENTO' ? 'Em andamento' : 'Aguardando'}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/tarefas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver tarefas →</Link>
+                                </div>
+                            )}
+                            {checkinsHoje.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<LogIn className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Check-ins realizados hoje"
+                                        count={checkinsHoje.length}
+                                        color="text-emerald-600 dark:text-emerald-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {checkinsHoje.map(r => (
+                                            <li key={r.id} className="text-sm text-muted-foreground">
+                                                <span className="font-medium text-foreground">{r.hospedeNome}</span>
+                                                <span> — {r.acomodacaoNome}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/reservas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver reservas →</Link>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* ── ALERTAS ── */}
+                    {activeTab === 'alertas' && (
+                        totalAlertas === 0 ? <EmptyState label="Nenhum alerta no momento" /> : <>
                             {urgentTasks.length > 0 && (
                                 <div className="py-4">
-                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 mb-3">
-                                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                                        Tarefas Urgentes ({urgentTasks.length})
-                                    </p>
+                                    <SectionLabel
+                                        icon={<AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Tarefas urgentes"
+                                        count={urgentTasks.length}
+                                        color="text-red-600 dark:text-red-400"
+                                    />
                                     <ul className="space-y-2">
                                         {urgentTasks.map(t => (
                                             <li key={t.id} className="text-sm text-muted-foreground">
@@ -67,18 +205,33 @@ export function AlertsSheet({ urgentTasks, pendingReservas, maintenanceRooms, st
                                             </li>
                                         ))}
                                     </ul>
-                                    <Link href="/dashboard/tarefas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">
-                                        Ver tarefas →
-                                    </Link>
+                                    <Link href="/dashboard/tarefas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver tarefas →</Link>
                                 </div>
                             )}
-
+                            {maintenanceRooms.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<Wrench className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Em manutenção"
+                                        count={maintenanceRooms.length}
+                                        color="text-orange-600 dark:text-orange-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {maintenanceRooms.map(a => (
+                                            <li key={a.id} className="text-sm font-medium">{a.nome}</li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/acomodacoes" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver acomodações →</Link>
+                                </div>
+                            )}
                             {pendingReservas.length > 0 && (
                                 <div className="py-4">
-                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-yellow-600 dark:text-yellow-400 mb-3">
-                                        <Clock className="h-3.5 w-3.5 shrink-0" />
-                                        Reservas Pendentes há +2 dias ({pendingReservas.length})
-                                    </p>
+                                    <SectionLabel
+                                        icon={<Clock className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Reservas pendentes há +2 dias"
+                                        count={pendingReservas.length}
+                                        color="text-yellow-600 dark:text-yellow-400"
+                                    />
                                     <ul className="space-y-2">
                                         {pendingReservas.map(r => (
                                             <li key={r.id} className="text-sm text-muted-foreground">
@@ -90,54 +243,102 @@ export function AlertsSheet({ urgentTasks, pendingReservas, maintenanceRooms, st
                                             </li>
                                         ))}
                                     </ul>
-                                    <Link href="/dashboard/reservas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">
-                                        Ver reservas →
-                                    </Link>
+                                    <Link href="/dashboard/reservas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver reservas →</Link>
                                 </div>
                             )}
-
-                            {maintenanceRooms.length > 0 && (
+                            {stockBaixo.length > 0 && (
                                 <div className="py-4">
-                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 mb-3">
-                                        <Wrench className="h-3.5 w-3.5 shrink-0" />
-                                        Em Manutenção ({maintenanceRooms.length})
-                                    </p>
+                                    <SectionLabel
+                                        icon={<Package className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Estoque baixo"
+                                        count={stockBaixo.length}
+                                        color="text-amber-600 dark:text-amber-400"
+                                    />
                                     <ul className="space-y-2">
-                                        {maintenanceRooms.map(a => (
-                                            <li key={a.id} className="text-sm font-medium">{a.nome}</li>
-                                        ))}
-                                    </ul>
-                                    <Link href="/dashboard/acomodacoes" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">
-                                        Ver acomodações →
-                                    </Link>
-                                </div>
-                            )}
-
-                            {stockAlerts.length > 0 && (
-                                <div className="py-4">
-                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 mb-3">
-                                        <Package className="h-3.5 w-3.5 shrink-0" />
-                                        Estoque Baixo ({stockAlerts.length})
-                                    </p>
-                                    <ul className="space-y-2">
-                                        {stockAlerts.map(p => (
+                                        {stockBaixo.map(p => (
                                             <li key={p.id} className="text-sm text-muted-foreground">
                                                 <span className="font-medium text-foreground">{p.nome}</span>
                                                 {' — '}
-                                                {p.zerado
-                                                    ? <span className="text-red-600 dark:text-red-400 font-semibold">zerado</span>
-                                                    : <span className="text-amber-600 dark:text-amber-400">{p.estoque} un.</span>
-                                                }
+                                                <span className="text-amber-600 dark:text-amber-400">{p.estoque} un.</span>
                                             </li>
                                         ))}
                                     </ul>
-                                    <Link href="/dashboard/produtos" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">
-                                        Ver produtos →
-                                    </Link>
+                                    <Link href="/dashboard/produtos" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver produtos →</Link>
                                 </div>
                             )}
                         </>
                     )}
+
+                    {/* ── PENDÊNCIAS ── */}
+                    {activeTab === 'pendencias' && (
+                        totalPend === 0 ? <EmptyState label="Nenhuma pendência crítica" /> : <>
+                            {checkoutsAtrasados.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<LogOut className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Checkouts não realizados"
+                                        count={checkoutsAtrasados.length}
+                                        color="text-red-600 dark:text-red-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {checkoutsAtrasados.map(r => (
+                                            <li key={r.id} className="text-sm text-muted-foreground">
+                                                <span className="font-medium text-foreground">{r.hospedeNome}</span>
+                                                <span> — {r.acomodacaoNome}</span>
+                                                <span className="block text-xs mt-0.5 text-red-500">
+                                                    Previsto {format(parseISO(r.dataCheckout), "dd/MM", { locale: ptBR })}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/reservas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver reservas →</Link>
+                                </div>
+                            )}
+                            {noShows.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<UserX className="h-3.5 w-3.5 shrink-0" />}
+                                        label="No-shows recentes"
+                                        count={noShows.length}
+                                        color="text-red-600 dark:text-red-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {noShows.map(r => (
+                                            <li key={r.id} className="text-sm text-muted-foreground">
+                                                <span className="font-medium text-foreground">{r.hospedeNome}</span>
+                                                <span> — {r.acomodacaoNome}</span>
+                                                <span className="block text-xs mt-0.5">
+                                                    {format(parseISO(r.dataCheckin), "dd/MM", { locale: ptBR })}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/reservas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver reservas →</Link>
+                                </div>
+                            )}
+                            {stockZerado.length > 0 && (
+                                <div className="py-4">
+                                    <SectionLabel
+                                        icon={<Package className="h-3.5 w-3.5 shrink-0" />}
+                                        label="Estoque zerado"
+                                        count={stockZerado.length}
+                                        color="text-red-600 dark:text-red-400"
+                                    />
+                                    <ul className="space-y-2">
+                                        {stockZerado.map(p => (
+                                            <li key={p.id} className="text-sm text-muted-foreground">
+                                                <span className="font-medium text-foreground">{p.nome}</span>
+                                                {' — '}
+                                                <span className="text-red-600 dark:text-red-400 font-semibold">zerado</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <Link href="/dashboard/produtos" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver produtos →</Link>
+                                </div>
+                            )}
+                        </>
+                    )}
+
                 </div>
             </SheetContent>
         </Sheet>

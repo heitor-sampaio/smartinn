@@ -125,10 +125,10 @@ export async function getDailyOperations() {
             }
         })
 
-        return { entradas, inHouse, saidas }
+        return { entradas, inHouse, saidas, pousadaId }
     } catch (error) {
         console.error("Erro ao puxar operações diárias:", error)
-        return { entradas: [], inHouse: [], saidas: [] }
+        return { entradas: [], inHouse: [], saidas: [], pousadaId: '' }
     }
 }
 
@@ -345,88 +345,104 @@ export async function getMonthlyFinancial() {
 }
 
 type DashboardAlertsResult = {
+    pousadaId: string
+    // Notificações — operações do dia a dia
+    limpezasAtivas: { id: string; status: string; acomodacaoNome: string | null }[]
+    checkinsHoje: { id: string; hospedeNome: string; acomodacaoNome: string }[]
+    // Alertas — requerem atenção
     urgentTasks: { id: string; titulo: string; acomodacaoNome: string | null }[]
-    pendingReservas: { id: string; hospedeNome: string; acomodacaoNome: string; criadoEm: string }[]
     maintenanceRooms: { id: string; nome: string }[]
-    stockAlerts: { id: string; nome: string; estoque: number; zerado: boolean }[]
+    pendingReservas: { id: string; hospedeNome: string; acomodacaoNome: string; criadoEm: string }[]
+    stockBaixo: { id: string; nome: string; estoque: number }[]
+    // Pendências — itens críticos
+    stockZerado: { id: string; nome: string }[]
+    noShows: { id: string; hospedeNome: string; acomodacaoNome: string; dataCheckin: string }[]
+    checkoutsAtrasados: { id: string; hospedeNome: string; acomodacaoNome: string; dataCheckout: string }[]
 }
 
 export async function getDashboardAlerts(): Promise<DashboardAlertsResult> {
+    const empty: DashboardAlertsResult = {
+        pousadaId: '',
+        limpezasAtivas: [], checkinsHoje: [],
+        urgentTasks: [], maintenanceRooms: [], pendingReservas: [], stockBaixo: [],
+        stockZerado: [], noShows: [], checkoutsAtrasados: []
+    }
+
     try {
         const { pousadaId } = await requireAuth()
 
-        const twoDaysAgo = subDays(new Date(), 2)
+        const now = new Date()
+        const todayStart = startOfDay(now)
+        const todayEnd = endOfDay(now)
+        const twoDaysAgo = subDays(now, 2)
 
-        const [urgentTasks, pendingReservas, maintenanceRooms, totalAcomodacoes, lowStockItems] = await Promise.all([
+        const [
+            limpezasAtivas, checkinsHoje,
+            urgentTasks, maintenanceRooms, pendingReservas, totalAcomodacoes, lowStockItems,
+            noShows, checkoutsAtrasados
+        ] = await Promise.all([
+            // — Notificações —
             prisma.tarefa.findMany({
-                where: {
-                    pousadaId,
-                    prioridade: 'URGENTE',
-                    status: { in: ['PENDENTE', 'EM_ANDAMENTO'] }
-                },
-                select: { id: true, titulo: true, acomodacao: { select: { nome: true } } },
-                orderBy: { criadoEm: 'asc' },
-                take: 5
+                where: { pousadaId, tipo: 'LIMPEZA', titulo: { contains: 'Hóspede' }, status: { in: ['PENDENTE', 'EM_ANDAMENTO'] } },
+                select: { id: true, status: true, acomodacao: { select: { nome: true } } },
+                orderBy: { criadoEm: 'asc' }
             }),
             prisma.reserva.findMany({
-                where: {
-                    pousadaId,
-                    status: 'PENDENTE',
-                    criadoEm: { lte: twoDaysAgo }
-                },
-                include: {
-                    hospede: { select: { nome: true } },
-                    acomodacao: { select: { nome: true } }
-                },
-                orderBy: { criadoEm: 'asc' },
-                take: 5
+                where: { pousadaId, status: 'CHECKIN_FEITO', dataCheckin: { gte: todayStart, lte: todayEnd } },
+                include: { hospede: { select: { nome: true } }, acomodacao: { select: { nome: true } } },
+                orderBy: { dataCheckin: 'asc' }
+            }),
+            // — Alertas —
+            prisma.tarefa.findMany({
+                where: { pousadaId, prioridade: 'URGENTE', status: { in: ['PENDENTE', 'EM_ANDAMENTO'] } },
+                select: { id: true, titulo: true, acomodacao: { select: { nome: true } } },
+                orderBy: { criadoEm: 'asc' }, take: 5
             }),
             prisma.acomodacao.findMany({
                 where: { pousadaId, status: 'MANUTENCAO' },
                 select: { id: true, nome: true }
             }),
+            prisma.reserva.findMany({
+                where: { pousadaId, status: 'PENDENTE', criadoEm: { lte: twoDaysAgo } },
+                include: { hospede: { select: { nome: true } }, acomodacao: { select: { nome: true } } },
+                orderBy: { criadoEm: 'asc' }, take: 5
+            }),
             prisma.acomodacao.count({ where: { pousadaId } }),
             prisma.produtoServico.findMany({
-                where: {
-                    pousadaId,
-                    ativo: true,
-                    estoque: { not: null }
-                },
+                where: { pousadaId, ativo: true, estoque: { not: null } },
                 select: { id: true, nome: true, estoque: true },
                 orderBy: { estoque: 'asc' }
-            })
+            }),
+            // — Pendências —
+            prisma.reserva.findMany({
+                where: { pousadaId, status: 'NO_SHOW', dataCheckin: { gte: subDays(now, 7) } },
+                include: { hospede: { select: { nome: true } }, acomodacao: { select: { nome: true } } },
+                orderBy: { dataCheckin: 'desc' }, take: 5
+            }),
+            prisma.reserva.findMany({
+                where: { pousadaId, status: 'CHECKIN_FEITO', dataCheckout: { lt: todayStart } },
+                include: { hospede: { select: { nome: true } }, acomodacao: { select: { nome: true } } },
+                orderBy: { dataCheckout: 'asc' }, take: 5
+            }),
         ])
 
         const limiteEstoque = totalAcomodacoes * 7
-        const stockAlerts = lowStockItems
-            .filter(p => p.estoque !== null && p.estoque < limiteEstoque)
-            .map(p => ({
-                id: p.id,
-                nome: p.nome,
-                estoque: p.estoque as number,
-                zerado: p.estoque === 0
-            }))
+        const stockFiltrado = lowStockItems.filter(p => p.estoque !== null && (p.estoque as number) < limiteEstoque)
 
         return {
-            urgentTasks: urgentTasks.map(t => ({
-                id: t.id,
-                titulo: t.titulo,
-                acomodacaoNome: t.acomodacao?.nome ?? null
-            })),
-            pendingReservas: pendingReservas.map(r => ({
-                id: r.id,
-                hospedeNome: r.hospede.nome,
-                acomodacaoNome: r.acomodacao.nome,
-                criadoEm: r.criadoEm.toISOString()
-            })),
-            maintenanceRooms: maintenanceRooms.map(a => ({
-                id: a.id,
-                nome: a.nome
-            })),
-            stockAlerts
+            pousadaId,
+            limpezasAtivas: limpezasAtivas.map(t => ({ id: t.id, status: t.status, acomodacaoNome: t.acomodacao?.nome ?? null })),
+            checkinsHoje: checkinsHoje.map(r => ({ id: r.id, hospedeNome: r.hospede.nome, acomodacaoNome: r.acomodacao.nome })),
+            urgentTasks: urgentTasks.map(t => ({ id: t.id, titulo: t.titulo, acomodacaoNome: t.acomodacao?.nome ?? null })),
+            maintenanceRooms: maintenanceRooms.map(a => ({ id: a.id, nome: a.nome })),
+            pendingReservas: pendingReservas.map(r => ({ id: r.id, hospedeNome: r.hospede.nome, acomodacaoNome: r.acomodacao.nome, criadoEm: r.criadoEm.toISOString() })),
+            stockBaixo: stockFiltrado.filter(p => (p.estoque as number) > 0).map(p => ({ id: p.id, nome: p.nome, estoque: p.estoque as number })),
+            stockZerado: stockFiltrado.filter(p => p.estoque === 0).map(p => ({ id: p.id, nome: p.nome })),
+            noShows: noShows.map(r => ({ id: r.id, hospedeNome: r.hospede.nome, acomodacaoNome: r.acomodacao.nome, dataCheckin: r.dataCheckin.toISOString() })),
+            checkoutsAtrasados: checkoutsAtrasados.map(r => ({ id: r.id, hospedeNome: r.hospede.nome, acomodacaoNome: r.acomodacao.nome, dataCheckout: r.dataCheckout.toISOString() })),
         }
     } catch (error) {
         console.error("Erro ao puxar alertas do dashboard:", error)
-        return { urgentTasks: [], pendingReservas: [], maintenanceRooms: [], stockAlerts: [] }
+        return empty
     }
 }

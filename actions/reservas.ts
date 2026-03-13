@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
+import { broadcastPousadaChange } from '@/lib/broadcast'
 
 export async function getReservas() {
     try {
@@ -359,7 +360,8 @@ export async function addConsumoReserva(reservaId: string, data: {
         }
 
         revalidatePath('/dashboard/reservas')
-        revalidatePath('/dashboard/produtos') // Atualiza tela de estoque caso aberta
+        revalidatePath('/dashboard/produtos')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Consumo adicionado com sucesso!' }
 
     } catch (err: any) {
@@ -397,6 +399,7 @@ export async function deleteExtraReserva(extraId: string) {
 
         revalidatePath('/dashboard/reservas')
         revalidatePath('/dashboard/produtos')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Item de consumo removido da fatura e estoque estornado.' }
     } catch (err: any) {
         return { error: 'Falha ao excluir item de consumo.' }

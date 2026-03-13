@@ -18,6 +18,16 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export function ReservaDetalhesModal({
     reserva,
@@ -37,6 +47,7 @@ export function ReservaDetalhesModal({
 
     const [checkInToken, setCheckInToken] = useState<string | null>(reserva?.checkInToken ?? null)
     const [gerandoToken, setGerandoToken] = useState(false)
+    const [extraParaExcluir, setExtraParaExcluir] = useState<{ id: string; descricao: string } | null>(null)
 
     const checkinUrl = checkInToken
         ? `${typeof window !== 'undefined' ? window.location.origin : ''}/check-in/${checkInToken}`
@@ -60,14 +71,16 @@ export function ReservaDetalhesModal({
         }
     }
 
-    const handleDeleteConsumo = async (extraId: string) => {
-        if (!confirm('Deseja realmente remover este item do consumo? Isso devolverá produtos ao estoque se aplicável.')) return;
-        const p = deleteExtraReserva(extraId);
+    const handleDeleteConsumo = async () => {
+        if (!extraParaExcluir) return
+        const id = extraParaExcluir.id
+        setExtraParaExcluir(null)
+        const p = deleteExtraReserva(id)
         toast.promise(p, {
             loading: 'Removendo consumo...',
             success: (res) => {
-                if (res.error) throw new Error(res.error);
-                return res.success || 'Item removido com sucesso.';
+                if (res.error) throw new Error(res.error)
+                return res.success || 'Item removido com sucesso.'
             },
             error: (e) => e.message
         })
@@ -86,6 +99,7 @@ export function ReservaDetalhesModal({
     }
 
     return (
+        <>
         <Tabs defaultValue="resumo" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="resumo">Resumo da Reserva</TabsTrigger>
@@ -258,7 +272,7 @@ export function ReservaDetalhesModal({
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-red-500 opacity-50 hover:opacity-100 hover:bg-red-50 transition-all pointer-events-auto"
-                                                onClick={() => handleDeleteConsumo(extra.id)}
+                                                onClick={() => setExtraParaExcluir({ id: extra.id, descricao: extra.descricao })}
                                                 title="Deletar Item (+ Estorno)"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -272,5 +286,27 @@ export function ReservaDetalhesModal({
                 </div>
             </TabsContent>
         </Tabs>
+
+        <AlertDialog open={!!extraParaExcluir} onOpenChange={(open) => { if (!open) setExtraParaExcluir(null) }}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Remover item de consumo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        O item <strong>{extraParaExcluir?.descricao}</strong> será removido da fatura.
+                        Se for um produto do catálogo, o estoque será estornado automaticamente.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90 text-white"
+                        onClick={handleDeleteConsumo}
+                    >
+                        Remover
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     )
 }

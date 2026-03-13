@@ -1,9 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card'
 import { LogIn, LogOut, BedDouble, Users } from 'lucide-react'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { createClient } from '@/utils/supabase/client'
 
 interface ReservaItem {
     id: string
@@ -71,12 +74,27 @@ function KanbanColumn({ title, description, icon, items, accent, badgeClass, emp
 export function KanbanDiario({
     entradas,
     inHouse,
-    saidas
+    saidas,
+    pousadaId
 }: {
     entradas: ReservaItem[]
     inHouse: ReservaItem[]
     saidas: ReservaItem[]
+    pousadaId: string
 }) {
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!pousadaId) return
+        const supabase = createClient()
+
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => { router.refresh() })
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+    }, [pousadaId, router])
+
     return (
         <div className="space-y-2">
             <div className="flex items-baseline justify-between">

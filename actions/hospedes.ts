@@ -59,6 +59,7 @@ export async function createHospede(formData: FormData) {
         const rawDate = formData.get('dataNascimento') as string
         const dataNascimento = rawDate ? new Date(rawDate) : null
 
+        const cep = formData.get('cep') as string || null
         const endereco = formData.get('endereco') as string || null
         const cidade = formData.get('cidade') as string || null
         const estado = formData.get('estado') as string || null
@@ -72,6 +73,7 @@ export async function createHospede(formData: FormData) {
                 telefone,
                 cpf,
                 dataNascimento,
+                cep,
                 endereco,
                 cidade,
                 estado,
@@ -102,6 +104,7 @@ export async function updateHospede(id: string, formData: FormData) {
         const rawDate = formData.get('dataNascimento') as string
         const dataNascimento = rawDate ? new Date(rawDate) : null
 
+        const cep = formData.get('cep') as string || null
         const endereco = formData.get('endereco') as string || null
         const cidade = formData.get('cidade') as string || null
         const estado = formData.get('estado') as string || null
@@ -119,6 +122,7 @@ export async function updateHospede(id: string, formData: FormData) {
                 telefone,
                 cpf,
                 dataNascimento,
+                cep,
                 endereco,
                 cidade,
                 estado,

@@ -25,6 +25,7 @@ const STATUS_META: Record<string, { label: string; accent: string; bg: string; t
     CHECKIN_FEITO:  { label: 'In-House',   accent: '#059669', bg: 'bg-emerald-200 dark:bg-emerald-700/80',     text: 'text-emerald-900 dark:text-emerald-50' },
     CHECKOUT_FEITO: { label: 'Concluída',  accent: '#64748b', bg: 'bg-slate-200   dark:bg-slate-600/80',       text: 'text-slate-700  dark:text-slate-100' },
     CANCELADA:      { label: 'Cancelada',  accent: '#dc2626', bg: 'bg-red-200     dark:bg-red-700/80',         text: 'text-red-900    dark:text-red-50' },
+    NO_SHOW:        { label: 'No-Show',    accent: '#b91c1c', bg: 'bg-red-300     dark:bg-red-800/80',         text: 'text-red-950    dark:text-red-50' },
 }
 
 function getInitial(nome: string): string {

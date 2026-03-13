@@ -19,45 +19,20 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
     const router = useRouter()
 
     useEffect(() => {
-        if (!pousadaId) return;
+        if (!pousadaId) return
 
         const supabase = createClient()
 
-        const channel = supabase.channel('realtime_tarefas')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tarefas'
-                },
-                (payload: any) => {
-                    console.log('Realtime Event Received:', payload)
-
-                    // Supabase Postgres usa aspas pra camelCase, o filtro lá falha. Filtramos no client:
-                    const record = payload.new || payload.old
-                    if (record && record.pousadaId !== pousadaId) {
-                        return; // Ignora tarefas de outras pousadas
-                    }
-
-                    if (payload.eventType === 'INSERT') {
-                        const audio = new Audio('/notification.mp3')
-                        audio.play().catch(e => console.log('Áudio autoplay bloquedo:', e))
-                        toast.info('Nova tarefa recebida!')
-                    } else if (payload.eventType === 'UPDATE') {
-                        toast.info('Uma tarefa foi atualizada.')
-                    }
-
-                    router.refresh()
-                }
-            )
-            .subscribe((status) => {
-                console.log('Supabase Channel Status:', status)
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => {
+                const audio = new Audio('/notification.mp3')
+                audio.play().catch(() => {})
+                toast.info('Tarefas atualizadas.')
+                router.refresh()
             })
+            .subscribe()
 
-        return () => {
-            supabase.removeChannel(channel)
-        }
+        return () => { supabase.removeChannel(channel) }
     }, [pousadaId, router])
 
     const openAdd = () => {

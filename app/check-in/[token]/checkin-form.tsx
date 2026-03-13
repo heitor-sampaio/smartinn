@@ -8,14 +8,48 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle2, Hotel } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, Hotel, FileText, Loader2 } from 'lucide-react'
 
-const ESTADOS_BR = [
-    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-]
+// ── Máscaras ─────────────────────────────────────────────────────────────────
+
+function maskCpf(value: string): string {
+    const d = value.replace(/\D/g, '').slice(0, 11)
+    return d
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
+}
+
+function maskPhone(value: string): string {
+    const d = value.replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 10) return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2')
+    return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+function maskCep(value: string): string {
+    const d = value.replace(/\D/g, '').slice(0, 8)
+    return d.replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+// ── Validação CPF ─────────────────────────────────────────────────────────────
+
+function validateCpf(cpf: string): boolean {
+    const d = cpf.replace(/\D/g, '')
+    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false
+    let s = 0
+    for (let i = 0; i < 9; i++) s += parseInt(d[i]) * (10 - i)
+    let r = (s * 10) % 11
+    if (r === 10 || r === 11) r = 0
+    if (r !== parseInt(d[9])) return false
+    s = 0
+    for (let i = 0; i < 10; i++) s += parseInt(d[i]) * (11 - i)
+    r = (s * 10) % 11
+    if (r === 10 || r === 11) r = 0
+    return r === parseInt(d[10])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface Reserva {
     id: string
@@ -31,6 +65,7 @@ interface Reserva {
         telefone: string | null
         email: string | null
         dataNascimento: string | null
+        cep: string | null
         endereco: string | null
         cidade: string | null
         estado: string | null
@@ -43,27 +78,64 @@ interface Props {
 }
 
 export function CheckinForm({ token, reserva }: Props) {
+    const h = reserva.hospede
+
     const [saved, setSaved] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [estado, setEstado] = useState(reserva.hospede.estado || '')
+
+    const [cpfValue, setCpfValue] = useState(h.cpf ?? '')
+    const [cpfError, setCpfError] = useState('')
+    const [phoneValue, setPhoneValue] = useState(h.telefone ?? '')
+    const [cepValue, setCepValue] = useState(h.cep ?? '')
+    const [cepLoading, setCepLoading] = useState(false)
+    const [endereco, setEndereco] = useState(h.endereco ?? '')
+    const [cidade, setCidade] = useState(h.cidade ?? '')
+    const [estado, setEstado] = useState(h.estado ?? '')
+
+    async function handleCepBlur() {
+        const digits = cepValue.replace(/\D/g, '')
+        if (digits.length !== 8) return
+        setCepLoading(true)
+        try {
+            const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+            const data = await res.json()
+            if (data.erro) {
+                toast.error('CEP não encontrado.')
+            } else {
+                setEndereco(data.logradouro ?? '')
+                setCidade(data.localidade ?? '')
+                setEstado(data.uf ?? '')
+            }
+        } catch {
+            toast.error('Falha ao buscar o CEP.')
+        } finally {
+            setCepLoading(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+
+        const rawCpf = cpfValue.replace(/\D/g, '')
+        if (rawCpf.length > 0 && !validateCpf(cpfValue)) {
+            setCpfError('CPF inválido.')
+            return
+        }
+        setCpfError('')
         setLoading(true)
 
         const form = e.currentTarget
-        const data = {
+        const result = await salvarDadosCheckin(token, {
             nome: (form.elements.namedItem('nome') as HTMLInputElement).value,
-            cpf: (form.elements.namedItem('cpf') as HTMLInputElement).value || undefined,
-            telefone: (form.elements.namedItem('telefone') as HTMLInputElement).value || undefined,
+            cpf: cpfValue || undefined,
+            telefone: phoneValue || undefined,
             email: (form.elements.namedItem('email') as HTMLInputElement).value || undefined,
             dataNascimento: (form.elements.namedItem('dataNascimento') as HTMLInputElement).value || undefined,
-            endereco: (form.elements.namedItem('endereco') as HTMLInputElement).value || undefined,
-            cidade: (form.elements.namedItem('cidade') as HTMLInputElement).value || undefined,
+            cep: cepValue || undefined,
+            endereco: endereco || undefined,
+            cidade: cidade || undefined,
             estado: estado || undefined,
-        }
-
-        const result = await salvarDadosCheckin(token, data)
+        })
 
         setLoading(false)
         if (result.error) {
@@ -83,11 +155,17 @@ export function CheckinForm({ token, reserva }: Props) {
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900">Tudo certo!</h1>
                     <p className="text-gray-600">
-                        Seus dados foram salvos com sucesso. Até logo, <strong>{reserva.hospede.nome}</strong>!
+                        Seus dados foram salvos com sucesso. Até logo, <strong>{h.nome}</strong>!
                     </p>
                     <p className="text-sm text-gray-400">
                         Check-in em <strong>{format(new Date(reserva.dataCheckin), "dd 'de' MMMM", { locale: ptBR })}</strong> na {reserva.pousada.nome}.
                     </p>
+                    <Button asChild className="w-full mt-2">
+                        <Link href={`/check-in/${token}/ficha`}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Ver minha ficha de reserva
+                        </Link>
+                    </Button>
                 </div>
             </div>
         )
@@ -96,10 +174,15 @@ export function CheckinForm({ token, reserva }: Props) {
     return (
         <div className="min-h-screen bg-muted/30 py-8 px-4">
             <div className="max-w-lg mx-auto space-y-6">
+
                 {/* Header da pousada */}
                 <div className="bg-white rounded-xl shadow-sm p-6 text-center space-y-2">
                     <div className="flex justify-center mb-2">
-                        <Hotel className="h-8 w-8 text-primary" />
+                        {reserva.pousada.logoUrl ? (
+                            <img src={reserva.pousada.logoUrl} alt={reserva.pousada.nome} className="h-10 w-auto object-contain" />
+                        ) : (
+                            <Hotel className="h-8 w-8 text-primary" />
+                        )}
                     </div>
                     <h1 className="text-xl font-bold text-gray-900">{reserva.pousada.nome}</h1>
                     <p className="text-sm text-muted-foreground">Check-in Virtual</p>
@@ -130,38 +213,58 @@ export function CheckinForm({ token, reserva }: Props) {
                     <p className="text-sm text-muted-foreground mb-5">Preencha ou confirme seus dados para agilizar o check-in presencial.</p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+
+                        {/* Nome */}
                         <div className="space-y-1.5">
                             <Label htmlFor="nome">Nome completo *</Label>
                             <Input
                                 id="nome"
                                 name="nome"
                                 required
-                                defaultValue={reserva.hospede.nome}
+                                defaultValue={h.nome}
                                 placeholder="Seu nome completo"
                             />
                         </div>
 
+                        {/* CPF + Telefone */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="cpf">CPF</Label>
                                 <Input
                                     id="cpf"
                                     name="cpf"
-                                    defaultValue={reserva.hospede.cpf || ''}
                                     placeholder="000.000.000-00"
+                                    value={cpfValue}
+                                    onChange={e => {
+                                        setCpfValue(maskCpf(e.target.value))
+                                        if (cpfError) setCpfError('')
+                                    }}
+                                    onBlur={() => {
+                                        const raw = cpfValue.replace(/\D/g, '')
+                                        if (raw.length > 0 && !validateCpf(cpfValue)) setCpfError('CPF inválido.')
+                                        else setCpfError('')
+                                    }}
+                                    inputMode="numeric"
+                                    maxLength={14}
+                                    className={cpfError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                                 />
+                                {cpfError && <p className="text-xs text-red-500">{cpfError}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="telefone">Telefone / WhatsApp</Label>
                                 <Input
                                     id="telefone"
                                     name="telefone"
-                                    defaultValue={reserva.hospede.telefone || ''}
                                     placeholder="(00) 00000-0000"
+                                    value={phoneValue}
+                                    onChange={e => setPhoneValue(maskPhone(e.target.value))}
+                                    inputMode="numeric"
+                                    maxLength={15}
                                 />
                             </div>
                         </div>
 
+                        {/* Email + Data de nascimento */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="email">E-mail</Label>
@@ -169,7 +272,7 @@ export function CheckinForm({ token, reserva }: Props) {
                                     id="email"
                                     name="email"
                                     type="email"
-                                    defaultValue={reserva.hospede.email || ''}
+                                    defaultValue={h.email || ''}
                                     placeholder="seu@email.com"
                                 />
                             </div>
@@ -179,45 +282,65 @@ export function CheckinForm({ token, reserva }: Props) {
                                     id="dataNascimento"
                                     name="dataNascimento"
                                     type="date"
-                                    defaultValue={reserva.hospede.dataNascimento
-                                        ? reserva.hospede.dataNascimento.split('T')[0]
-                                        : ''}
+                                    defaultValue={h.dataNascimento ? h.dataNascimento.split('T')[0] : ''}
                                 />
                             </div>
                         </div>
 
+                        {/* CEP */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="cep">CEP</Label>
+                            <div className="relative">
+                                <Input
+                                    id="cep"
+                                    name="cep"
+                                    placeholder="00000-000"
+                                    value={cepValue}
+                                    onChange={e => setCepValue(maskCep(e.target.value))}
+                                    onBlur={handleCepBlur}
+                                    inputMode="numeric"
+                                    maxLength={9}
+                                />
+                                {cepLoading && (
+                                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Logradouro */}
                         <div className="space-y-1.5">
                             <Label htmlFor="endereco">Endereço</Label>
                             <Input
                                 id="endereco"
                                 name="endereco"
-                                defaultValue={reserva.hospede.endereco || ''}
                                 placeholder="Rua, número, complemento"
+                                value={endereco}
+                                onChange={e => setEndereco(e.target.value)}
                             />
                         </div>
 
+                        {/* Cidade + Estado */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="cidade">Cidade</Label>
                                 <Input
                                     id="cidade"
                                     name="cidade"
-                                    defaultValue={reserva.hospede.cidade || ''}
                                     placeholder="Sua cidade"
+                                    value={cidade}
+                                    onChange={e => setCidade(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Estado</Label>
-                                <Select value={estado} onValueChange={setEstado}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="UF" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {ESTADOS_BR.map(uf => (
-                                            <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="estado">Estado (UF)</Label>
+                                <Input
+                                    id="estado"
+                                    name="estado"
+                                    placeholder="Ex: SP"
+                                    value={estado}
+                                    onChange={e => setEstado(e.target.value.toUpperCase().slice(0, 2))}
+                                    maxLength={2}
+                                />
                             </div>
                         </div>
 
