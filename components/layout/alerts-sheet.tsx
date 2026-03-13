@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
     Bell, AlertTriangle, Clock, Wrench, CheckCircle, Package,
-    Sparkles, LogIn, UserX, LogOut, BellRing
+    Sparkles, LogIn, UserX, LogOut, BellRing, X
 } from 'lucide-react'
 import { formatDistanceToNow, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -58,15 +58,41 @@ export function AlertsSheet(props: AlertsData) {
 
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<Tab>('notificacoes')
+    const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
-    const totalNotif = limpezasAtivas.length + checkinsHoje.length
+    // Quando os dados do servidor mudam (router.refresh), limpa dismissed de IDs que já saíram
+    useEffect(() => {
+        const allNotifIds = new Set([
+            ...limpezasAtivas.map(t => t.id),
+            ...checkinsHoje.map(r => r.id),
+        ])
+        setDismissed(prev => {
+            const next = new Set<string>()
+            prev.forEach(id => { if (allNotifIds.has(id)) next.add(id) })
+            return next
+        })
+    }, [limpezasAtivas, checkinsHoje])
+
+    const dismiss = (id: string) => setDismissed(prev => new Set(prev).add(id))
+    const dismissAll = () => {
+        const allIds = [
+            ...limpezasAtivas.map(t => t.id),
+            ...checkinsHoje.map(r => r.id),
+        ]
+        setDismissed(new Set(allIds))
+    }
+
+    // Notificações filtradas (não dispensadas)
+    const limpezasVisiveis = limpezasAtivas.filter(t => !dismissed.has(t.id))
+    const checkinsVisiveis = checkinsHoje.filter(r => !dismissed.has(r.id))
+    const totalNotif = limpezasVisiveis.length + checkinsVisiveis.length
+
     const totalAlertas = urgentTasks.length + maintenanceRooms.length + pendingReservas.length + stockBaixo.length
     const totalPend = stockZerado.length + noShows.length + checkoutsAtrasados.length
     const total = totalNotif + totalAlertas + totalPend
 
-    // Cor do badge da sino: vermelho se há pendências, âmbar se só alertas, azul se só notificações
-    const badgeColor = totalPend > 0 ? 'bg-red-500' : totalAlertas > 0 ? 'bg-amber-500' : 'bg-blue-500'
-    const pingColor = totalPend > 0 ? 'bg-red-400' : totalAlertas > 0 ? 'bg-amber-400' : 'bg-blue-400'
+    const badgeColor = totalPend > 0 ? 'bg-red-500' : totalAlertas > 0 ? 'bg-amber-500' : totalNotif > 0 ? 'bg-blue-500' : ''
+    const pingColor  = totalPend > 0 ? 'bg-red-400' : totalAlertas > 0 ? 'bg-amber-400' : 'bg-blue-400'
 
     useEffect(() => {
         if (!pousadaId) return
@@ -78,9 +104,9 @@ export function AlertsSheet(props: AlertsData) {
     }, [pousadaId, router])
 
     const tabs: { id: Tab; label: string; count: number; color: string }[] = [
-        { id: 'notificacoes', label: 'Notificações', count: totalNotif, color: 'text-blue-600 dark:text-blue-400' },
-        { id: 'alertas', label: 'Alertas', count: totalAlertas, color: 'text-amber-600 dark:text-amber-400' },
-        { id: 'pendencias', label: 'Pendências', count: totalPend, color: 'text-red-600 dark:text-red-400' },
+        { id: 'notificacoes', label: 'Notificações', count: totalNotif,   color: 'text-blue-600 dark:text-blue-400' },
+        { id: 'alertas',      label: 'Alertas',       count: totalAlertas, color: 'text-amber-600 dark:text-amber-400' },
+        { id: 'pendencias',   label: 'Pendências',    count: totalPend,    color: 'text-red-600 dark:text-red-400' },
     ]
 
     return (
@@ -126,7 +152,7 @@ export function AlertsSheet(props: AlertsData) {
                                 {tab.count > 0 && (
                                     <span className={`ml-1 text-[10px] font-bold px-1 py-0.5 rounded-full ${
                                         tab.id === 'pendencias' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                                        tab.id === 'alertas' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                        tab.id === 'alertas'    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
                                         'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                                     }`}>
                                         {tab.count}
@@ -142,41 +168,67 @@ export function AlertsSheet(props: AlertsData) {
                     {/* ── NOTIFICAÇÕES ── */}
                     {activeTab === 'notificacoes' && (
                         totalNotif === 0 ? <EmptyState label="Sem notificações no momento" /> : <>
-                            {limpezasAtivas.length > 0 && (
+
+                            {/* Botão marcar todas como lidas */}
+                            <div className="pt-3 pb-1 flex justify-end">
+                                <button
+                                    onClick={dismissAll}
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    Marcar todas como lidas
+                                </button>
+                            </div>
+
+                            {limpezasVisiveis.length > 0 && (
                                 <div className="py-4">
                                     <SectionLabel
                                         icon={<Sparkles className="h-3.5 w-3.5 shrink-0" />}
                                         label="Limpezas solicitadas"
-                                        count={limpezasAtivas.length}
+                                        count={limpezasVisiveis.length}
                                         color="text-blue-600 dark:text-blue-400"
                                     />
                                     <ul className="space-y-2">
-                                        {limpezasAtivas.map(t => (
+                                        {limpezasVisiveis.map(t => (
                                             <li key={t.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                                 <span className={`h-2 w-2 rounded-full shrink-0 ${t.status === 'EM_ANDAMENTO' ? 'bg-blue-500' : 'bg-amber-400'}`} />
                                                 <span className="font-medium text-foreground">{t.acomodacaoNome ?? '—'}</span>
                                                 <span className="text-xs ml-auto shrink-0">
                                                     {t.status === 'EM_ANDAMENTO' ? 'Em andamento' : 'Aguardando'}
                                                 </span>
+                                                <button
+                                                    onClick={() => dismiss(t.id)}
+                                                    className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                                                    title="Marcar como lida"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
                                             </li>
                                         ))}
                                     </ul>
                                     <Link href="/dashboard/tarefas" className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 block">Ver tarefas →</Link>
                                 </div>
                             )}
-                            {checkinsHoje.length > 0 && (
+
+                            {checkinsVisiveis.length > 0 && (
                                 <div className="py-4">
                                     <SectionLabel
                                         icon={<LogIn className="h-3.5 w-3.5 shrink-0" />}
                                         label="Check-ins realizados hoje"
-                                        count={checkinsHoje.length}
+                                        count={checkinsVisiveis.length}
                                         color="text-emerald-600 dark:text-emerald-400"
                                     />
                                     <ul className="space-y-2">
-                                        {checkinsHoje.map(r => (
-                                            <li key={r.id} className="text-sm text-muted-foreground">
+                                        {checkinsVisiveis.map(r => (
+                                            <li key={r.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                                 <span className="font-medium text-foreground">{r.hospedeNome}</span>
-                                                <span> — {r.acomodacaoNome}</span>
+                                                <span className="truncate"> — {r.acomodacaoNome}</span>
+                                                <button
+                                                    onClick={() => dismiss(r.id)}
+                                                    className="ml-auto shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                                                    title="Marcar como lida"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
                                             </li>
                                         ))}
                                     </ul>
