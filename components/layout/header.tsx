@@ -111,7 +111,8 @@ export function Header({ email, alerts }: { email?: string; alerts: AlertsData }
                 </Link>
             </div>
 
-            {/* Alertas */}
+            {/* Alertas + Perfil */}
+            <div className="flex items-center gap-1">
             <AlertsSheet {...alerts} />
 
             {/* User Profile Dropdown */}
@@ -144,6 +145,7 @@ export function Header({ email, alerts }: { email?: string; alerts: AlertsData }
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            </div>
         </header>
     )
 }
