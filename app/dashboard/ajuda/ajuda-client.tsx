@@ -274,7 +274,7 @@ const SECOES: Secao[] = [
                 conteudo: (
                     <ol className="space-y-2 text-sm leading-relaxed list-decimal list-inside">
                         <li>Acesse o módulo <strong>Acomodações</strong> e clique em <strong>Nova Acomodação</strong>.</li>
-                        <li>Informe o nome (ex: "Quarto 01", "Chalé Ipê").</li>
+                        <li>Informe o nome (ex: &ldquo;Quarto 01&rdquo;, &ldquo;Chalé Ipê&rdquo;).</li>
                         <li>Selecione o tipo e a capacidade (adultos e crianças).</li>
                         <li>Defina a tarifa padrão (diária base).</li>
                         <li>Adicione comodidades (ar-condicionado, TV, frigobar, etc.).</li>
@@ -399,7 +399,7 @@ const SECOES: Secao[] = [
                 conteudo: (
                     <ol className="space-y-2 text-sm leading-relaxed list-decimal list-inside">
                         <li>Acesse o módulo <strong>Tarefas</strong> e clique em <strong>Nova Tarefa</strong>.</li>
-                        <li>Dê um título descritivo (ex: "Limpeza Quarto 03").</li>
+                        <li>Dê um título descritivo (ex: &ldquo;Limpeza Quarto 03&rdquo;).</li>
                         <li>Selecione o tipo: <em>Limpeza</em>, <em>Preparação</em>, <em>Manutenção</em> ou <em>Outro</em>.</li>
                         <li>Defina a prioridade e a data/hora limite.</li>
                         <li>Atribua um responsável (membro da equipe).</li>
@@ -436,7 +436,7 @@ const SECOES: Secao[] = [
                 titulo: 'Checklist de itens',
                 conteudo: (
                     <p className="text-sm leading-relaxed">
-                        Ao criar ou editar uma tarefa, você pode adicionar itens de checklist (ex: "Trocar toalhas", "Repor frigobar", "Verificar ar-condicionado"). O responsável marca cada item conforme conclui. A tarefa só pode ser finalizada quando todos os itens estiverem marcados (configurável).
+                        Ao criar ou editar uma tarefa, você pode adicionar itens de checklist (ex: &ldquo;Trocar toalhas&rdquo;, &ldquo;Repor frigobar&rdquo;, &ldquo;Verificar ar-condicionado&rdquo;). O responsável marca cada item conforme conclui. A tarefa só pode ser finalizada quando todos os itens estiverem marcados (configurável).
                     </p>
                 ),
             },
@@ -461,7 +461,7 @@ const SECOES: Secao[] = [
                 conteudo: (
                     <ol className="space-y-2 text-sm leading-relaxed list-decimal list-inside">
                         <li>Acesse <strong>Produtos e Serviços</strong> e clique em <strong>Novo Item</strong>.</li>
-                        <li>Informe o nome (ex: "Cerveja Long Neck", "Passeio de Barco").</li>
+                        <li>Informe o nome (ex: &ldquo;Cerveja Long Neck&rdquo;, &ldquo;Passeio de Barco&rdquo;).</li>
                         <li>Selecione a categoria e defina o preço unitário.</li>
                         <li>Informe o estoque disponível (para produtos físicos).</li>
                         <li>Clique em <strong>Salvar</strong>.</li>
