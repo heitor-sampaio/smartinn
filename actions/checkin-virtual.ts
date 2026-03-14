@@ -22,6 +22,13 @@ export async function getReservaByToken(token: string) {
             return { error: `Esta reserva está ${reserva.status === 'CANCELADA' ? 'cancelada' : 'encerrada'} e não aceita mais alterações.` }
         }
 
+        // Expire token 30 days after checkout
+        const expiresAt = new Date(reserva.dataCheckout)
+        expiresAt.setDate(expiresAt.getDate() + 30)
+        if (new Date() > expiresAt) {
+            return { error: 'Este link de check-in expirou.' }
+        }
+
         return {
             data: {
                 id: reserva.id,
@@ -60,6 +67,11 @@ export async function salvarDadosCheckin(token: string, data: {
     endereco?: string
     cidade?: string
     estado?: string
+    nacionalidade?: string
+    tipoDocumento?: string
+    numeroDocumento?: string
+    motivoEstadia?: string
+    genero?: string
 }) {
     try {
         const reserva = await prisma.reserva.findUnique({
@@ -84,6 +96,11 @@ export async function salvarDadosCheckin(token: string, data: {
                 endereco: data.endereco || null,
                 cidade: data.cidade || null,
                 estado: data.estado || null,
+                nacionalidade: data.nacionalidade || null,
+                tipoDocumento: (data.tipoDocumento as any) || null,
+                numeroDocumento: data.numeroDocumento || null,
+                motivoEstadia: (data.motivoEstadia as any) || null,
+                genero: (data.genero as any) || null,
             }
         })
 
@@ -118,6 +135,12 @@ export async function getReservaFichaByToken(token: string) {
         if (!reserva) return { error: 'Ficha não encontrada.' }
         if (reserva.status === 'CANCELADA') return { error: 'Esta reserva foi cancelada.' }
 
+        // Only expose wifi password while guest is actively checked in
+        const pousadaInfo = {
+            ...reserva.pousada,
+            senhaWifi: reserva.status === 'CHECKIN_FEITO' ? reserva.pousada.senhaWifi : null,
+        }
+
         return {
             data: {
                 id: reserva.id,
@@ -127,7 +150,7 @@ export async function getReservaFichaByToken(token: string) {
                 totalHospedes: reserva.totalHospedes,
                 valorTotal: Number(reserva.valorTotal),
                 acomodacao: reserva.acomodacao,
-                pousada: reserva.pousada,
+                pousada: pousadaInfo,
                 pousadaId: reserva.pousadaId,
                 hospedeNome: reserva.hospede.nome,
                 extras: reserva.extras.map(e => ({

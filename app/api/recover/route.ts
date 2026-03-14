@@ -42,6 +42,6 @@ export async function GET(request: Request) {
 
         return NextResponse.redirect(new URL('/dashboard/configuracoes?recovered=true', request.url));
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 });
     }
 }

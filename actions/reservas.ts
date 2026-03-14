@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
 import { broadcastPousadaChange } from '@/lib/broadcast'
+import { enviarFnrh } from '@/actions/fnrh'
 
 export async function getReservas() {
     try {
@@ -29,6 +30,7 @@ export async function getReservas() {
             atualizadoEm: reserva.atualizadoEm.toISOString(),
             checkinRealizadoEm: reserva.checkinRealizadoEm ? reserva.checkinRealizadoEm.toISOString() : null,
             checkoutRealizadoEm: reserva.checkoutRealizadoEm ? reserva.checkoutRealizadoEm.toISOString() : null,
+            fnrhEnviadoEm: reserva.fnrhEnviadoEm ? reserva.fnrhEnviadoEm.toISOString() : null,
             valorTotal: Number(reserva.valorTotal),
             extras: reserva.extras.map(e => ({
                 ...e,
@@ -239,6 +241,7 @@ export async function createReserva(formData: FormData) {
 
         revalidatePath('/dashboard/reservas')
         revalidatePath('/dashboard/hospedes') // Revalida hóspedes tbm pra atualizar lista
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Reserva confirmada com sucesso!' }
     } catch (error) {
         console.error(error)
@@ -267,6 +270,7 @@ export async function confirmarReserva(reservaId: string) {
         })
 
         revalidatePath('/dashboard/reservas')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Reserva confirmada!' }
     } catch (err) {
         return { error: 'Ocorreu um erro ao atualizar a acomodação da reserva.' }
@@ -436,8 +440,12 @@ export async function fazerCheckin(reservaId: string) {
             })
         ])
 
+        // Fire-and-forget: não bloqueia o check-in se a FNRH falhar
+        enviarFnrh(reservaId).catch(err => console.error('[FNRH]', err))
+
         revalidatePath('/dashboard/reservas')
         revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Check-in realizado com sucesso! Quarto Ocupado.' }
     } catch (error) {
         return { error: 'Falha crítica ao realizar Check-in.' }
@@ -595,6 +603,7 @@ export async function fazerCheckout(
         revalidatePath('/dashboard/acomodacoes')
         revalidatePath('/dashboard/tarefas')
         revalidatePath('/dashboard/financeiro')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Check-out realizado com sucesso! Fechamento de conta registrado.' }
     } catch (error) {
         return { error: 'Falha crítica ao realizar Check-out.' }
@@ -611,6 +620,7 @@ export async function cancelarReserva(reservaId: string) {
         })
 
         revalidatePath('/dashboard/reservas')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Reserva cancelada.' }
     } catch (error) {
         return { error: 'Não foi possível cancelar.' }
@@ -637,6 +647,7 @@ export async function registrarNoShow(reservaId: string) {
         })
 
         revalidatePath('/dashboard/reservas')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'No Show registrado.' }
     } catch (error) {
         return { error: 'Não foi possível registrar o No Show.' }

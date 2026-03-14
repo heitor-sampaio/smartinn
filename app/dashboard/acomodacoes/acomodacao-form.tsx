@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { createAcomodacao, updateAcomodacao } from '@/actions/acomodacoes'
+import { createComodidade } from '@/actions/comodidades'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,19 +19,57 @@ import { toast } from 'sonner'
 
 export function AcomodacaoForm({
     initialData,
+    comodidades,
     onSuccess
 }: {
     initialData?: any,
+    comodidades: string[],
     onSuccess: () => void
 }) {
     const [isLoading, setIsLoading] = useState(false)
+    const [localList, setLocalList] = useState<string[]>(comodidades)
+    const [newAmenity, setNewAmenity] = useState('')
+    const [isAddingAmenity, setIsAddingAmenity] = useState(false)
+    const [selected, setSelected] = useState<Set<string>>(
+        new Set(initialData?.caracteristicas || [])
+    )
+
+    const toggleSelected = (item: string) => {
+        setSelected(prev => {
+            const next = new Set(prev)
+            if (next.has(item)) next.delete(item)
+            else next.add(item)
+            return next
+        })
+    }
+
+    const handleAddAmenity = async () => {
+        const nome = newAmenity.trim()
+        if (!nome) return
+        if (localList.map(a => a.toLowerCase()).includes(nome.toLowerCase())) {
+            toast.error('Essa comodidade já existe.')
+            return
+        }
+        setIsAddingAmenity(true)
+        const result = await createComodidade(nome)
+        setIsAddingAmenity(false)
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            setLocalList(prev => [...prev, nome])
+            setNewAmenity('')
+        }
+    }
 
     async function onSubmit(formData: FormData) {
         setIsLoading(true)
 
+        // Inject controlled checkboxes into formData
+        formData.delete('caracteristicas')
+        selected.forEach(item => formData.append('caracteristicas', item))
+
         let result;
         if (initialData?.id) {
-            // Envio do ID pro update é feito por fora do formData pra segurança
             result = await updateAcomodacao(initialData.id, formData)
         } else {
             result = await createAcomodacao(formData)
@@ -116,24 +156,50 @@ export function AcomodacaoForm({
 
             <div className="space-y-3 pt-2 pb-2">
                 <Label>Características e Comodidades</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-muted/30 p-4 rounded-md border">
-                    {['Ar condicionado', 'Aquecedor', 'Banheira', 'Cofre', 'Frigobar', 'Lareira', 'Microondas', 'Televisão', 'Vista panorâmica'].map((item) => (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 bg-muted/30 p-4 rounded-md border max-h-48 overflow-y-auto">
+                    {localList.map((item) => (
                         <div key={item} className="flex items-center space-x-2">
                             <Checkbox
                                 id={`feat-${item}`}
-                                name="caracteristicas"
-                                value={item}
-                                defaultChecked={initialData?.caracteristicas?.includes(item)}
+                                checked={selected.has(item)}
+                                onCheckedChange={() => toggleSelected(item)}
                             />
                             <label
                                 htmlFor={`feat-${item}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
                                 {item}
                             </label>
                         </div>
                     ))}
                 </div>
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Adicionar nova comodidade..."
+                        value={newAmenity}
+                        onChange={e => setNewAmenity(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddAmenity()
+                            }
+                        }}
+                        className="text-sm"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleAddAmenity}
+                        disabled={isAddingAmenity || !newAmenity.trim()}
+                        title="Adicionar comodidade"
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Novas comodidades ficam disponíveis para todas as acomodações.
+                </p>
             </div>
 
             {initialData?.id && (

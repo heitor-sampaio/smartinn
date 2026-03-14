@@ -1,4 +1,6 @@
+import { requireRole } from '@/lib/auth'
 import { getAcomodacoes } from '@/actions/acomodacoes'
+import { getComodidades } from '@/actions/comodidades'
 import { AcomodacoesClient } from './acomodacoes-client'
 
 export const metadata = {
@@ -6,7 +8,12 @@ export const metadata = {
 }
 
 export default async function AcomodacoesPage() {
-    const { data, error } = await getAcomodacoes()
+    const { pousadaId } = await requireRole(['ADMIN', 'RECEPCIONISTA'])
+
+    const [{ data, error }, { data: comodidades }] = await Promise.all([
+        getAcomodacoes(),
+        getComodidades()
+    ])
 
     if (error) {
         return (
@@ -17,7 +24,6 @@ export default async function AcomodacoesPage() {
         )
     }
 
-    // Passamos as acomodações hidratadas do banco pro componente cliente renderizar a tabela
     return (
         <div className="flex-1 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -26,7 +32,7 @@ export default async function AcomodacoesPage() {
                     <p className="text-muted-foreground mt-1 text-sm">Gerencie os quartos, cabanas e unidades disponíveis na pousada.</p>
                 </div>
             </div>
-            <AcomodacoesClient initialData={data || []} />
+            <AcomodacoesClient initialData={data || []} comodidades={comodidades || []} pousadaId={pousadaId} />
         </div>
     )
 }

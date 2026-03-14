@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+import { requireRole } from '@/lib/auth'
 import { getProdutosList } from "@/actions/produtos"
 import { getAcomodacoesCount } from "@/actions/acomodacoes"
 import { ProdutosClient } from "./produtos-client"
@@ -9,6 +10,8 @@ export const metadata: Metadata = {
 }
 
 export default async function ProdutosPage() {
+    await requireRole(['ADMIN', 'RECEPCIONISTA'])
+
     const [{ data: produtos, error }, { data: totalAcomodacoes }] = await Promise.all([
         getProdutosList(),
         getAcomodacoesCount(),

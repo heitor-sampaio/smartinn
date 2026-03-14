@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
-export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pousadaId, linkEquipe }: { initialData: any[], acomodacoesList?: any[], isEquipeMode?: boolean, pousadaId?: string, linkEquipe?: string }) {
+export function TarefasClient({ initialData, acomodacoesList, pousadaId }: { initialData: any[], acomodacoesList?: any[], pousadaId?: string }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingTarefa, setEditingTarefa] = useState<any>(null)
     const router = useRouter()
@@ -46,7 +46,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
     }
 
     const handleUpdateStatus = async (id: string, novoStatus: string) => {
-        const promise = updateStatusTarefa(id, novoStatus, isEquipeMode ? (linkEquipe) : undefined)
+        const promise = updateStatusTarefa(id, novoStatus)
         toast.promise(promise, {
             loading: 'Movendo...',
             success: (result) => {
@@ -166,7 +166,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
                             )}
                         </div>
 
-                        {!isEquipeMode && (
+                        {(
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => openEdit(t)}>
                                     Editar
@@ -206,7 +206,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
 
     return (
         <div className="h-full flex flex-col">
-            {!isEquipeMode && (
+            {(
                 <div className="flex justify-end mb-3 shrink-0">
                     <Button onClick={openAdd}>
                         <Plus className="mr-2 h-4 w-4" /> Nova Tarefa
@@ -241,7 +241,7 @@ export function TarefasClient({ initialData, acomodacoesList, isEquipeMode, pous
             </div>
 
             {/* Modal de Criação */}
-            {!isEquipeMode && (
+            {(
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>

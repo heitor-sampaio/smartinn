@@ -1,6 +1,8 @@
+import { requireRole } from '@/lib/auth'
 import { getReservas, getHospedesList, getAcomodacoesList } from '@/actions/reservas'
 import { getProdutosList } from '@/actions/produtos'
 import { getAjustes } from '@/actions/configuracoes'
+import { getComodidades } from '@/actions/comodidades'
 import { ReservasClient } from './reservas-client'
 
 export const metadata = {
@@ -8,13 +10,15 @@ export const metadata = {
 }
 
 export default async function ReservasPage() {
-    // Vamos buscar em paralelo as reservas Atuais e também as listas pros combos do Form e Consumo
-    const [reservasRes, hospedesRes, acomodacoesRes, produtosRes, pousadaConfig] = await Promise.all([
+    const { pousadaId } = await requireRole(['ADMIN', 'RECEPCIONISTA'])
+
+    const [reservasRes, hospedesRes, acomodacoesRes, produtosRes, pousadaConfig, comodidadesRes] = await Promise.all([
         getReservas(),
         getHospedesList(),
         getAcomodacoesList(),
         getProdutosList(),
-        getAjustes()
+        getAjustes(),
+        getComodidades()
     ])
 
     if (reservasRes.error) {
@@ -41,7 +45,9 @@ export default async function ReservasPage() {
                 hospedesList={hospedesRes.data || []}
                 acomodacoesList={acomodacoesRes.data || []}
                 produtosList={produtosRes.data || []}
+                comodidades={comodidadesRes.data || []}
                 configPousada={pousadaConfig}
+                pousadaId={pousadaId}
             />
         </div>
     )

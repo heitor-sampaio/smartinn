@@ -77,12 +77,6 @@ export async function updateProduto(id: string, formData: FormData) {
     try {
         const { pousadaId } = await requireAuth()
 
-        // Validar posse do objeto
-        const existing = await prisma.produtoServico.findUnique({ where: { id } })
-        if (!existing || existing.pousadaId !== pousadaId) {
-            return { error: 'Produto não encontrado ou acesso restrito.' }
-        }
-
         const nome = formData.get('nome') as string
         const descricao = formData.get('descricao') as string | null
         const precoStr = formData.get('preco') as string
@@ -103,7 +97,7 @@ export async function updateProduto(id: string, formData: FormData) {
         const estoque = estoqueStr && estoqueStr !== '' ? parseInt(estoqueStr, 10) : null
 
         await prisma.produtoServico.update({
-            where: { id },
+            where: { id, pousadaId },
             data: {
                 nome,
                 descricao,
@@ -125,13 +119,8 @@ export async function toggleStatusProduto(id: string, ativoAtual: boolean) {
     try {
         const { pousadaId } = await requireAuth()
 
-        const existing = await prisma.produtoServico.findUnique({ where: { id } })
-        if (!existing || existing.pousadaId !== pousadaId) {
-            return { error: 'Produto não encontrado.' }
-        }
-
         await prisma.produtoServico.update({
-            where: { id },
+            where: { id, pousadaId },
             data: { ativo: !ativoAtual }
         })
 
@@ -146,15 +135,10 @@ export async function ajustarEstoque(id: string, novoEstoque: number) {
     try {
         const { pousadaId } = await requireAuth()
 
-        const existing = await prisma.produtoServico.findUnique({ where: { id } })
-        if (!existing || existing.pousadaId !== pousadaId) {
-            return { error: 'Produto não encontrado.' }
-        }
-
         if (novoEstoque < 0) return { error: 'Estoque não pode ser negativo.' }
 
         await prisma.produtoServico.update({
-            where: { id },
+            where: { id, pousadaId },
             data: { estoque: novoEstoque }
         })
 
@@ -171,12 +155,7 @@ export async function deleteProduto(id: string) {
 
         if (perfil !== 'ADMIN') return { error: 'Apenas administradores podem excluir itens permanentemente.' }
 
-        const existing = await prisma.produtoServico.findUnique({ where: { id } })
-        if (!existing || existing.pousadaId !== pousadaId) {
-            return { error: 'Produto não encontrado.' }
-        }
-
-        await prisma.produtoServico.delete({ where: { id } })
+        await prisma.produtoServico.delete({ where: { id, pousadaId } })
 
         revalidatePath('/dashboard/produtos')
         return { success: 'Item apagado com sucesso do catálogo.' }

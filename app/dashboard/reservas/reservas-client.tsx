@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -18,15 +20,29 @@ export function ReservasClient({
     hospedesList,
     acomodacoesList,
     produtosList,
-    configPousada
+    comodidades,
+    configPousada,
+    pousadaId,
 }: {
     initialData: any[];
     hospedesList: any[];
     acomodacoesList: any[];
     produtosList: any[];
+    comodidades: string[];
     configPousada: any;
+    pousadaId?: string;
 }) {
+    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    useEffect(() => {
+        if (!pousadaId) return
+        const supabase = createClient()
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => { router.refresh() })
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [pousadaId, router])
     // Armazenar ID em vez do objeto inteiro para que o Refresh pós-ação do Modal de Extras recarregue os subtotais aqui na hora!
     const [editingReservaId, setEditingReservaId] = useState<string | null>(null);
     const [prefillData, setPrefillData] = useState<{ acomodacaoId: string; dataCheckin: string; dataCheckout: string } | null>(null);
@@ -159,6 +175,7 @@ export function ReservasClient({
                             initialData={prefillData ?? null}
                             hospedesList={hospedesList}
                             acomodacoesList={acomodacoesList}
+                            comodidades={comodidades}
                             onSuccess={() => setIsDialogOpen(false)}
                             configPousada={configPousada}
                         />

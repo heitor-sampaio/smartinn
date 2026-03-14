@@ -1,8 +1,15 @@
-import { getAjustes } from '@/actions/configuracoes';
-import ConfiguracoesClient from './configuracoes-client';
+import { requireRole } from '@/lib/auth'
+import { getAjustes } from '@/actions/configuracoes'
+import { listarUsuarios } from '@/actions/usuarios'
+import ConfiguracoesClient from './configuracoes-client'
 
 export default async function ConfiguracoesPage() {
-    const settings = await getAjustes();
+    await requireRole(['ADMIN'])
+
+    const [settings, usuariosRes] = await Promise.all([
+        getAjustes(),
+        listarUsuarios(),
+    ])
 
     return (
         <div className="flex-1 space-y-4">
@@ -13,8 +20,7 @@ export default async function ConfiguracoesPage() {
                 </div>
             </div>
 
-            {/* Client component passing the current settings */}
-            <ConfiguracoesClient initialData={settings} />
+            <ConfiguracoesClient initialData={settings} initialUsuarios={usuariosRes.data ?? []} />
         </div>
-    );
+    )
 }

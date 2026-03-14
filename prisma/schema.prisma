@@ -37,11 +37,12 @@ model Pousada {
   taxaAirbnb        Decimal                @default(0) @db.Decimal(5, 2)
   taxaDecolar       Decimal                @default(0) @db.Decimal(5, 2)
   taxaExpedia       Decimal                @default(0) @db.Decimal(5, 2)
-  senhaEquipe       String?
-  linkEquipe        String                 @unique @default(uuid())
-  ramalRecepcao     String?
-  nomeWifi          String?
-  senhaWifi         String?
+  ramalRecepcao         String?
+  nomeWifi              String?
+  senhaWifi             String?
+  fnrhUser              String?
+  fnrhKey               String?
+  fnrhAtivo             Boolean                @default(false)
 
   // Tarifas Dinâmicas (Acréscimos Base Diária Padrão)
   tarifasDinamicasAtivas Boolean           @default(false)
@@ -53,6 +54,7 @@ model Pousada {
 
   acomodacoes       Acomodacao[]
   checklistPadrao   ChecklistPadrao[]
+  comodidades       Comodidade[]
   hospedes          Hospede[]
   lancamentos       LancamentoFinanceiro[]
   reservas          Reserva[]
@@ -118,6 +120,17 @@ model BloqueioAcomodacao {
   @@map("bloqueios_acomodacao")
 }
 
+model Comodidade {
+  id        String   @id @default(uuid())
+  pousadaId String
+  nome      String
+  criadoEm  DateTime @default(now())
+  pousada   Pousada  @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+
+  @@unique([pousadaId, nome])
+  @@map("comodidades")
+}
+
 model Hospede {
   id             String    @id @default(uuid())
   pousadaId      String
@@ -130,11 +143,16 @@ model Hospede {
   endereco       String?
   cidade         String?
   estado         String?
-  observacoes    String?
-  criadoEm       DateTime  @default(now())
-  atualizadoEm   DateTime  @updatedAt
-  pousada        Pousada   @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
-  reservas       Reserva[]
+  observacoes      String?
+  nacionalidade    String?
+  tipoDocumento    TipoDocumento?
+  numeroDocumento  String?
+  motivoEstadia    MotivoEstadia?
+  genero           Genero?
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
+  pousada          Pousada   @relation(fields: [pousadaId], references: [id], onDelete: Cascade)
+  reservas         Reserva[]
 
   @@map("hospedes")
 }
@@ -155,6 +173,10 @@ model Reserva {
   checkinPorId           String?
   checkoutPorId          String?
   checkInToken           String?                @unique
+  fnrhStatus             FnrhStatus?
+  fnrhId                 String?
+  fnrhEnviadoEm          DateTime?
+  fnrhErro               String?
   criadoEm               DateTime               @default(now())
   atualizadoEm           DateTime               @updatedAt
   extras                 ExtraReserva[]
@@ -433,4 +455,32 @@ enum CategoriaProdutoServico {
   PASSEIO
   SERVICO
   OUTRO
+}
+
+enum TipoDocumento {
+  CPF
+  PASSAPORTE
+  RG
+  CNH
+  RNE
+}
+
+enum MotivoEstadia {
+  LAZER
+  NEGOCIOS
+  SAUDE
+  EVENTOS
+  OUTROS
+}
+
+enum Genero {
+  MASCULINO
+  FEMININO
+  NAO_INFORMADO
+}
+
+enum FnrhStatus {
+  PENDENTE
+  ENVIADO
+  ERRO
 }

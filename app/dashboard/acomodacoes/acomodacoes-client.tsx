@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,9 +19,19 @@ import { AcomodacaoForm } from './acomodacao-form'
 import { deleteAcomodacao, toggleStatusAcomodacao } from '@/actions/acomodacoes'
 import { toast } from 'sonner'
 
-export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
+export function AcomodacoesClient({ initialData, comodidades, pousadaId }: { initialData: any[], comodidades: string[], pousadaId?: string }) {
+    const router = useRouter()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingAcomodacao, setEditingAcomodacao] = useState<any>(null)
+
+    useEffect(() => {
+        if (!pousadaId) return
+        const supabase = createClient()
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => { router.refresh() })
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [pousadaId, router])
 
     const openAdd = () => {
         setEditingAcomodacao(null)
@@ -183,12 +195,13 @@ export function AcomodacoesClient({ initialData }: { initialData: any[] }) {
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>{editingAcomodacao ? 'Editar Quarto' : 'Novo Quarto'}</DialogTitle>
                     </DialogHeader>
                     <AcomodacaoForm
                         initialData={editingAcomodacao}
+                        comodidades={comodidades}
                         onSuccess={() => setIsDialogOpen(false)}
                     />
                 </DialogContent>

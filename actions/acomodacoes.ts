@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
+import { broadcastPousadaChange } from '@/lib/broadcast'
 
 export async function getAcomodacoesCount() {
     try {
@@ -22,7 +23,7 @@ export async function getAcomodacoes() {
         const acomodacoes = await prisma.acomodacao.findMany({
             where: { pousadaId },
             orderBy: [
-                { status: 'asc' }, // Traz disponiveis/ocupados primeiro
+                { status: 'asc' },
                 { nome: 'asc' }
             ]
         })
@@ -39,6 +40,7 @@ export async function getAcomodacoes() {
         return { error: 'Falha ao buscar acomodações' }
     }
 }
+
 
 export async function createAcomodacao(formData: FormData) {
     try {
@@ -68,6 +70,7 @@ export async function createAcomodacao(formData: FormData) {
         })
 
         revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Acomodação cadastrada com sucesso!' }
     } catch (error) {
         console.error(error)
@@ -108,6 +111,7 @@ export async function updateAcomodacao(id: string, formData: FormData) {
         })
 
         revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Acomodação atualizada com sucesso!' }
     } catch (error) {
         return { error: 'Erro ao atualizar acomodação' }
@@ -126,6 +130,7 @@ export async function deleteAcomodacao(id: string) {
         })
 
         revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Acomodação removida!' }
     } catch (error) {
         return { error: 'Não é possível remover quartos com reservas atreladas.' }
@@ -147,6 +152,7 @@ export async function toggleStatusAcomodacao(id: string, novoStatus: any) {
         })
 
         revalidatePath('/dashboard/acomodacoes')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Status modificado!' }
     } catch (error) {
         return { error: 'Erro ao alterar status.' }

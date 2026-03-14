@@ -1,23 +1,15 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth'
 import { getDashboardIndicators } from '@/actions/indicadores'
 import { DashboardIndicators } from './indicadores-client'
 import prisma from '@/lib/prisma'
 
 export default async function IndicadoresPage() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { pousadaId } = await requireRole(['ADMIN'])
 
-    if (!user) {
-        redirect('/login')
-    }
-
-    const usuario = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        include: { pousada: true }
-    })
-
-    const indicatorsData = await getDashboardIndicators()
+    const [indicatorsData, pousada] = await Promise.all([
+        getDashboardIndicators(),
+        prisma.pousada.findUnique({ where: { id: pousadaId }, select: { nome: true } }),
+    ])
 
     return (
         <div className="flex-1 space-y-4">
@@ -25,7 +17,7 @@ export default async function IndicadoresPage() {
                 <div>
                     <h2 className="text-xl md:text-3xl font-bold tracking-tight">Central de Indicadores (BI)</h2>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Análise de performance e saúde financeira da {usuario?.pousada?.nome || 'pousada'}.
+                        Análise de performance e saúde financeira da {pousada?.nome || 'pousada'}.
                     </p>
                 </div>
             </div>

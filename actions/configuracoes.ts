@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { createClient } from '@/utils/supabase/server';
+import { requireAuth } from '@/lib/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
@@ -23,7 +23,6 @@ const configSchema = z.object({
     cep: z.string().optional(),
     cidade: z.string().optional(),
     estado: z.string().optional(),
-    senhaEquipe: z.string().optional(),
     ramalRecepcao: z.string().optional(),
     nomeWifi: z.string().optional(),
     senhaWifi: z.string().optional(),
@@ -34,32 +33,22 @@ const configSchema = z.object({
     tarifaTemporada: z.coerce.number().min(0).default(0),
     inicioTemporada: z.coerce.date().nullable().optional(),
     fimTemporada: z.coerce.date().nullable().optional(),
+    fnrhUser: z.string().optional(),
+    fnrhKey: z.string().optional(),
+    fnrhAtivo: z.boolean().optional().default(false),
 });
 
 type ConfigInput = z.infer<typeof configSchema>;
 
 export async function getAjustes() {
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            throw new Error('Não autenticado');
-        }
-
-        // Busca o usuário local para pegar o pousadaId
-        const usuarioLogado = await prisma.usuario.findUnique({
-            where: { supabaseId: user.id },
-            select: { pousadaId: true },
-        });
-
-        if (!usuarioLogado) {
-            throw new Error('Usuário não encontrado');
-        }
+        const { pousadaId } = await requireAuth();
 
         const pousada = await prisma.pousada.findUnique({
-            where: { id: usuarioLogado.pousadaId },
+            where: { id: pousadaId },
         });
+
+        if (!pousada) return null;
 
         return pousada;
     } catch (error: any) {
@@ -70,28 +59,16 @@ export async function getAjustes() {
 
 export async function updateAjustes(data: ConfigInput) {
     try {
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { pousadaId, perfil } = await requireAuth();
 
-        if (!user) {
-            throw new Error('Não autenticado');
-        }
-
-        const usuarioLogado = await prisma.usuario.findUnique({
-            where: { supabaseId: user.id },
-            select: { pousadaId: true },
-        });
-
-        if (!usuarioLogado) {
-            throw new Error('Usuário não encontrado');
+        if (perfil !== 'ADMIN') {
+            return { success: false, error: 'Acesso restrito a administradores.' };
         }
 
         const validData = configSchema.parse(data);
 
-        console.log('SAVING CONFIG:', { userId: user.id, pousadaId: usuarioLogado.pousadaId });
-
         const updatedPousada = await prisma.pousada.update({
-            where: { id: usuarioLogado.pousadaId },
+            where: { id: pousadaId },
             data: {
                 horaCheckin: validData.horaCheckin,
                 horaCheckout: validData.horaCheckout,
@@ -110,7 +87,6 @@ export async function updateAjustes(data: ConfigInput) {
                 cep: validData.cep,
                 cidade: validData.cidade,
                 estado: validData.estado,
-                senhaEquipe: validData.senhaEquipe,
                 ramalRecepcao: validData.ramalRecepcao,
                 nomeWifi: validData.nomeWifi,
                 senhaWifi: validData.senhaWifi,
@@ -121,6 +97,9 @@ export async function updateAjustes(data: ConfigInput) {
                 tarifaTemporada: validData.tarifaTemporada,
                 inicioTemporada: validData.inicioTemporada || null,
                 fimTemporada: validData.fimTemporada || null,
+                fnrhUser: validData.fnrhUser || null,
+                fnrhKey: validData.fnrhKey || null,
+                fnrhAtivo: validData.fnrhAtivo ?? false,
             },
         });
 
@@ -128,10 +107,7 @@ export async function updateAjustes(data: ConfigInput) {
         revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/configuracoes');
 
-        return {
-            success: true,
-            pousada: updatedPousada
-        };
+        return { success: true, pousada: updatedPousada };
     } catch (error: any) {
         console.error('Erro ao atualizar configurações:', error);
         return {

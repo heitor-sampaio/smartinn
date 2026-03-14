@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { CheckCircle2, Hotel, FileText, Loader2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // ── Máscaras ─────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,11 @@ export function CheckinForm({ token, reserva }: Props) {
     const [endereco, setEndereco] = useState(h.endereco ?? '')
     const [cidade, setCidade] = useState(h.cidade ?? '')
     const [estado, setEstado] = useState(h.estado ?? '')
+    const [nacionalidade, setNacionalidade] = useState('BR')
+    const [genero, setGenero] = useState('')
+    const [motivoEstadia, setMotivoEstadia] = useState('')
+    const [tipoDocumento, setTipoDocumento] = useState('')
+    const [numeroDocumento, setNumeroDocumento] = useState('')
 
     async function handleCepBlur() {
         const digits = cepValue.replace(/\D/g, '')
@@ -135,6 +141,11 @@ export function CheckinForm({ token, reserva }: Props) {
             endereco: endereco || undefined,
             cidade: cidade || undefined,
             estado: estado || undefined,
+            nacionalidade: nacionalidade || undefined,
+            genero: genero || undefined,
+            motivoEstadia: motivoEstadia || undefined,
+            tipoDocumento: (nacionalidade !== 'BR' && tipoDocumento) ? tipoDocumento : undefined,
+            numeroDocumento: (nacionalidade !== 'BR' && numeroDocumento) ? numeroDocumento : undefined,
         })
 
         setLoading(false)
@@ -343,6 +354,104 @@ export function CheckinForm({ token, reserva }: Props) {
                                 />
                             </div>
                         </div>
+
+                        {/* Divisor FNRH */}
+                        <div className="pt-2 pb-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t pt-3">
+                                Informações adicionais (obrigatório por lei)
+                            </p>
+                        </div>
+
+                        {/* Nacionalidade */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="nacionalidade">Nacionalidade</Label>
+                            <Select value={nacionalidade} onValueChange={setNacionalidade}>
+                                <SelectTrigger id="nacionalidade">
+                                    <SelectValue placeholder="Selecione..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="BR">Brasileira</SelectItem>
+                                    <SelectItem value="AR">Argentina</SelectItem>
+                                    <SelectItem value="US">Americana (EUA)</SelectItem>
+                                    <SelectItem value="PT">Portuguesa</SelectItem>
+                                    <SelectItem value="DE">Alemã</SelectItem>
+                                    <SelectItem value="FR">Francesa</SelectItem>
+                                    <SelectItem value="IT">Italiana</SelectItem>
+                                    <SelectItem value="ES">Espanhola</SelectItem>
+                                    <SelectItem value="GB">Britânica</SelectItem>
+                                    <SelectItem value="UY">Uruguaia</SelectItem>
+                                    <SelectItem value="CL">Chilena</SelectItem>
+                                    <SelectItem value="CO">Colombiana</SelectItem>
+                                    <SelectItem value="PE">Peruana</SelectItem>
+                                    <SelectItem value="CN">Chinesa</SelectItem>
+                                    <SelectItem value="JP">Japonesa</SelectItem>
+                                    <SelectItem value="OUTRO">Outra</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Gênero + Motivo da Estadia */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="genero">Gênero</Label>
+                                <Select value={genero} onValueChange={setGenero}>
+                                    <SelectTrigger id="genero">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="MASCULINO">Masculino</SelectItem>
+                                        <SelectItem value="FEMININO">Feminino</SelectItem>
+                                        <SelectItem value="NAO_INFORMADO">Prefiro não informar</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="motivoEstadia">Motivo da estadia</Label>
+                                <Select value={motivoEstadia} onValueChange={setMotivoEstadia}>
+                                    <SelectTrigger id="motivoEstadia">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="LAZER">Lazer / Turismo</SelectItem>
+                                        <SelectItem value="NEGOCIOS">Negócios</SelectItem>
+                                        <SelectItem value="SAUDE">Saúde</SelectItem>
+                                        <SelectItem value="EVENTOS">Eventos</SelectItem>
+                                        <SelectItem value="OUTROS">Outros</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Tipo + Número do documento — só para estrangeiros */}
+                        {nacionalidade !== 'BR' && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="tipoDocumento">Tipo de documento</Label>
+                                    <Select value={tipoDocumento} onValueChange={setTipoDocumento}>
+                                        <SelectTrigger id="tipoDocumento">
+                                            <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="PASSAPORTE">Passaporte</SelectItem>
+                                            <SelectItem value="RNE">RNE</SelectItem>
+                                            <SelectItem value="RG">RG</SelectItem>
+                                            <SelectItem value="CNH">CNH</SelectItem>
+                                            <SelectItem value="CPF">CPF</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="numeroDocumento">Número do documento</Label>
+                                    <Input
+                                        id="numeroDocumento"
+                                        name="numeroDocumento"
+                                        placeholder="Nº do documento"
+                                        value={numeroDocumento}
+                                        onChange={e => setNumeroDocumento(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <Button type="submit" className="w-full mt-2" disabled={loading}>
                             {loading ? 'Salvando...' : 'Confirmar meus dados'}

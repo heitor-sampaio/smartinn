@@ -1,3 +1,4 @@
+import { requireRole } from '@/lib/auth'
 import { getLancamentosList } from '@/actions/financeiro'
 import { FinanceiroClient } from './financeiro-client'
 import { MonthSelector } from './month-selector'
@@ -11,6 +12,8 @@ export default async function FinanceiroPage({
 }: {
     searchParams: { mes?: string, ano?: string }
 }) {
+    const { pousadaId } = await requireRole(['ADMIN'])
+
     const dataAtual = new Date()
     const mes = searchParams.mes ? parseInt(searchParams.mes) : dataAtual.getMonth() + 1
     const ano = searchParams.ano ? parseInt(searchParams.ano) : dataAtual.getFullYear()
@@ -36,7 +39,7 @@ export default async function FinanceiroPage({
                 <MonthSelector mesAtual={mes} anoAtual={ano} />
             </div>
 
-            <FinanceiroClient initialData={data || []} mesAtual={mes} anoAtual={ano} />
+            <FinanceiroClient initialData={data || []} mesAtual={mes} anoAtual={ano} pousadaId={pousadaId} />
         </div>
     )
 }

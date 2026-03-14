@@ -25,16 +25,21 @@ export default async function DashboardLayout({
         getDashboardAlerts(),
     ])
 
+    if (!dbUser?.ativo) {
+        redirect('/login')
+    }
+
     const modoTema = (dbUser as any)?.pousada?.modoTema || 'system';
+    const perfil = dbUser?.perfil ?? 'RECEPCIONISTA'
 
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] overflow-x-hidden">
             <ThemeSync forcedTheme={modoTema} />
             {/* Sidebar fixo para telas md+ */}
-            <Sidebar />
+            <Sidebar perfil={perfil} />
             <div className="flex flex-col min-w-0">
                 {/* Header no topo */}
-                <Header email={user.email} alerts={alerts} />
+                <Header email={user.email} alerts={alerts} perfil={perfil} />
                 {/* Conteúdo dinâmico (páginas) */}
                 <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-8 min-w-0 overflow-x-hidden">
                     {children}

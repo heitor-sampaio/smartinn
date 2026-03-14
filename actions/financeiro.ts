@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
 import { randomUUID } from 'crypto'
+import { broadcastPousadaChange } from '@/lib/broadcast'
 
 export async function getLancamentosList(mes?: number, ano?: number) {
     try {
@@ -81,7 +82,8 @@ function gerarDatasRecorrentes(dataBase: Date, intervalo: string, max = 12): Dat
 
 export async function createLancamento(formData: FormData) {
     try {
-        const { pousadaId } = await requireAuth()
+        const { pousadaId, perfil } = await requireAuth()
+        if (perfil !== 'ADMIN') return { error: 'Acesso restrito a administradores.' }
 
         const tipo = formData.get('tipo') as any // ENTRADA | SAIDA
         const formaPagamento = formData.get('formaPagamento') as any
@@ -142,6 +144,7 @@ export async function createLancamento(formData: FormData) {
         }
 
         revalidatePath('/dashboard/financeiro')
+        await broadcastPousadaChange(pousadaId)
 
         const msg = isRecorrente
             ? `Lançamento recorrente registrado! 12 ocorrências criadas (intervalo: ${intervaloRecorrencia!.toLowerCase()}).`
@@ -156,7 +159,8 @@ export async function createLancamento(formData: FormData) {
 
 export async function deleteLancamento(id: string) {
     try {
-        const { pousadaId } = await requireAuth()
+        const { pousadaId, perfil } = await requireAuth()
+        if (perfil !== 'ADMIN') return { error: 'Acesso restrito a administradores.' }
 
         await prisma.lancamentoFinanceiro.delete({
             where: {
@@ -166,6 +170,7 @@ export async function deleteLancamento(id: string) {
         })
 
         revalidatePath('/dashboard/financeiro')
+        await broadcastPousadaChange(pousadaId)
         return { success: 'Lançamento excluído com sucesso!' }
     } catch (error) {
         console.error(error)

@@ -1,42 +1,13 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { broadcastPousadaChange } from '@/lib/broadcast'
-import { cookies } from 'next/headers'
+import { requireAuth } from '@/lib/auth'
 
-// Helper de Autenticação e Segurança
-async function requireAuth(fallbackLinkEquipe?: string) {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-        if (fallbackLinkEquipe && cookies().get(`equipe_auth_${fallbackLinkEquipe}`)?.value === 'true') {
-            const pousadaLink = await prisma.pousada.findUnique({
-                where: { linkEquipe: fallbackLinkEquipe },
-                select: { id: true }
-            });
-            if (pousadaLink) {
-                return { user: null, pousadaId: pousadaLink.id, perfil: 'EQUIPE', linkEquipe: fallbackLinkEquipe }
-            }
-        }
-        throw new Error('Não autorizado')
-    }
-
-    const usuario = await prisma.usuario.findUnique({
-        where: { supabaseId: user.id },
-        select: { pousadaId: true, perfil: true }
-    })
-
-    if (!usuario) throw new Error('Usuário não encontrado no sistema')
-
-    return { user, pousadaId: usuario.pousadaId, perfil: usuario.perfil }
-}
-
-export async function getTarefasList(fallbackLinkEquipe?: string) {
+export async function getTarefasList() {
     try {
-        const { pousadaId } = await requireAuth(fallbackLinkEquipe)
+        const { pousadaId } = await requireAuth()
 
         // Para este MVP vamos focar apenas no modelo "Tarefa". 
         // Trataremos Limpeza e Manutenção como Tipos dentro de Tarefa para manter um Kanban Unificado fácil.
@@ -136,9 +107,9 @@ export async function deleteTarefa(id: string) {
     }
 }
 
-export async function updateStatusTarefa(id: string, novoStatus: any, fallbackLinkEquipe?: string) {
+export async function updateStatusTarefa(id: string, novoStatus: any) {
     try {
-        const { pousadaId } = await requireAuth(fallbackLinkEquipe)
+        const { pousadaId } = await requireAuth()
 
         // 1. Busca a tarefa atual pra checar se pertence à pousada e ver o vínculo original
         const tarefa = await prisma.tarefa.findUnique({

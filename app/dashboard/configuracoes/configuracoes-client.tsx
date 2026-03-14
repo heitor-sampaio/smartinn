@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateAjustes } from '@/actions/configuracoes';
+import { criarUsuario, desativarUsuario, ativarUsuario, excluirUsuario } from '@/actions/usuarios';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -20,6 +21,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Card,
     CardContent,
@@ -29,8 +31,28 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Building2, Save, Store, Palette, Globe, Loader2, MapPin, HardHat, CopyCheck, FileText, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Building2, Save, Store, Palette, Loader2, MapPin, HardHat, CopyCheck, FileText, CreditCard, UserPlus, Trash2, Users2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 // Validation Schema
 const configSchema = z.object({
@@ -54,7 +76,6 @@ const configSchema = z.object({
     cidade: z.string().optional(),
     estado: z.string().optional(),
 
-    senhaEquipe: z.string().min(4, "Senha muito curta").optional().or(z.literal("")),
     ramalRecepcao: z.string().optional(),
     nomeWifi: z.string().optional(),
     senhaWifi: z.string().optional(),
@@ -65,18 +86,82 @@ const configSchema = z.object({
     tarifaTemporada: z.number().min(0),
     inicioTemporada: z.string().optional(),
     fimTemporada: z.string().optional(),
+    fnrhUser: z.string().optional(),
+    fnrhKey: z.string().optional(),
+    fnrhAtivo: z.boolean(),
 });
 
 type ConfigFormValues = z.infer<typeof configSchema>;
 
-interface ConfiguracoesClientProps {
-    initialData: any; // Using any here for brevity instead of full Prisma Type
+type UsuarioItem = {
+    id: string
+    nome: string
+    email: string
+    perfil: string
+    ativo: boolean
 }
 
-export default function ConfiguracoesClient({ initialData }: ConfiguracoesClientProps) {
+interface ConfiguracoesClientProps {
+    initialData: any; // Using any here for brevity instead of full Prisma Type
+    initialUsuarios: UsuarioItem[]
+}
+
+export default function ConfiguracoesClient({ initialData, initialUsuarios }: ConfiguracoesClientProps) {
     const [isPending, startTransition] = useTransition();
     const { setTheme, theme } = useTheme();
     const router = useRouter();
+
+    // FNRH state
+    const [showFnrhKey, setShowFnrhKey] = useState(false)
+
+    // User management state
+    const [usuarios, setUsuarios] = useState<UsuarioItem[]>(initialUsuarios)
+    const [addMemberOpen, setAddMemberOpen] = useState(false)
+    const [addingMember, setAddingMember] = useState(false)
+    const [novoMembro, setNovoMembro] = useState({ nome: '', email: '', senha: '', perfil: 'RECEPCIONISTA' as 'RECEPCIONISTA' | 'EQUIPE' })
+
+    useEffect(() => {
+        setUsuarios(initialUsuarios)
+    }, [initialUsuarios])
+
+    const handleToggleAtivo = async (id: string, ativo: boolean) => {
+        const action = ativo ? ativarUsuario : desativarUsuario
+        const res = await action(id)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            setUsuarios(prev => prev.map(u => u.id === id ? { ...u, ativo } : u))
+            toast.success(ativo ? 'Usuário ativado!' : 'Usuário desativado!')
+        }
+    }
+
+    const handleExcluir = async (id: string) => {
+        const res = await excluirUsuario(id)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            setUsuarios(prev => prev.filter(u => u.id !== id))
+            toast.success('Membro removido com sucesso.')
+        }
+    }
+
+    const handleCriarMembro = async () => {
+        if (!novoMembro.nome || !novoMembro.email || !novoMembro.senha) {
+            toast.error('Preencha todos os campos.')
+            return
+        }
+        setAddingMember(true)
+        const res = await criarUsuario(novoMembro)
+        setAddingMember(false)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success('Membro criado com sucesso!')
+            setAddMemberOpen(false)
+            setNovoMembro({ nome: '', email: '', senha: '', perfil: 'RECEPCIONISTA' })
+            router.refresh()
+        }
+    }
 
     const form = useForm<ConfigFormValues>({
         resolver: zodResolver(configSchema),
@@ -98,7 +183,6 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
             endereco: initialData?.endereco || '',
             cidade: initialData?.cidade || '',
             estado: initialData?.estado || '',
-            senhaEquipe: initialData?.senhaEquipe || '',
             ramalRecepcao: initialData?.ramalRecepcao || '',
             nomeWifi: initialData?.nomeWifi || '',
             senhaWifi: initialData?.senhaWifi || '',
@@ -109,6 +193,9 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
             tarifaTemporada: Number(initialData?.tarifaTemporada) || 0,
             inicioTemporada: initialData?.inicioTemporada ? new Date(initialData.inicioTemporada).toISOString().split('T')[0] : '',
             fimTemporada: initialData?.fimTemporada ? new Date(initialData.fimTemporada).toISOString().split('T')[0] : '',
+            fnrhUser: initialData?.fnrhUser || '',
+            fnrhKey: initialData?.fnrhKey || '',
+            fnrhAtivo: Boolean(initialData?.fnrhAtivo),
         },
     });
 
@@ -457,6 +544,92 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
                                 </CardContent>
                             )}
                         </Card>
+
+                        {/* FNRH Section */}
+                        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck className="w-5 h-5 text-blue-600" />
+                                        <CardTitle className="text-base">Integração FNRH Digital (MTUR)</CardTitle>
+                                        {form.watch('fnrhAtivo') ? (
+                                            form.watch('fnrhUser') && form.watch('fnrhKey') ? (
+                                                <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">Configurado</Badge>
+                                            ) : (
+                                                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">Não configurado</Badge>
+                                            )
+                                        ) : (
+                                            <Badge variant="secondary" className="text-xs">Desabilitada</Badge>
+                                        )}
+                                    </div>
+                                    <CardDescription>
+                                        Obrigatório por lei (Portaria MTUR Nº 41/2025) a partir de 13/04/2026.
+                                        As credenciais são geradas no{' '}
+                                        <a href="https://cadastur.turismo.gov.br" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline underline-offset-2">
+                                            Cadastur
+                                        </a>.
+                                    </CardDescription>
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="fnrhAtivo"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col items-center justify-center pt-2">
+                                            <FormControl>
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </CardHeader>
+                            {form.watch('fnrhAtivo') && (
+                                <CardContent className="grid gap-4 md:grid-cols-2 pt-4 border-t">
+                                    <FormField
+                                        control={form.control}
+                                        name="fnrhUser"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>FNRH User</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} placeholder="Usuário fornecido pelo Cadastur" autoComplete="off" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="fnrhKey"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>FNRH Key</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Input
+                                                            {...field}
+                                                            type={showFnrhKey ? 'text' : 'password'}
+                                                            placeholder="Chave secreta do Cadastur"
+                                                            autoComplete="off"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                            onClick={() => setShowFnrhKey(v => !v)}
+                                                            tabIndex={-1}
+                                                        >
+                                                            {showFnrhKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                        </Button>
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            )}
+                        </Card>
                     </TabsContent>
 
                     {/* TAB 2: Dados Cadastrais */}
@@ -686,56 +859,142 @@ export default function ConfiguracoesClient({ initialData }: ConfiguracoesClient
                         </Card>
                     </TabsContent>
 
-                    {/* TAB 4: Acesso Exclusivo da Equipe Puxado sem Supabase Auth */}
+                    {/* TAB 4: Gerenciamento de Membros */}
                     <TabsContent value="equipe" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Acesso da Equipe (Limpeza & Manutenção)</CardTitle>
-                                <CardDescription>
-                                    A equipe operacional não precisa de conta completa no sistema. Passe o link abaixo e a senha secreta que você definir, para que acessem o painel de checklist de tarefas.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="p-4 bg-muted/50 border rounded-lg flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium">Link de Acesso da Equipe</p>
-                                        <p className="text-xs text-muted-foreground break-all">
-                                            {typeof window !== 'undefined' ? window.location.origin : ''}/equipe/{initialData?.linkEquipe}
-                                        </p>
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                    <div>
+                                        <CardTitle>Membros da Equipe</CardTitle>
+                                        <CardDescription className="mt-1">
+                                            Cada colaborador tem login individual. O acesso é restrito ao perfil atribuído.
+                                        </CardDescription>
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="shrink-0"
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(`${window.location.origin}/equipe/${initialData?.linkEquipe}`);
-                                            toast.success("Link copiado para a área de transferência!");
-                                        }}
-                                    >
-                                        <CopyCheck className="w-4 h-4 mr-2" />
-                                        Copiar Link
+                                    <Button type="button" onClick={() => setAddMemberOpen(true)} className="shrink-0">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Adicionar membro
                                     </Button>
                                 </div>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="senhaEquipe"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Senha Secreta da Equipe</FormLabel>
-                                                <FormControl>
-                                                    <Input type="text" placeholder="Ex: Limpeza123" {...field} />
-                                                </FormControl>
-                                                <FormDescription>Deixe em branco para remover o acesso.</FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {usuarios.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                                        <Users2 className="w-10 h-10 mb-3 opacity-40" />
+                                        <p className="text-sm">Nenhum membro cadastrado ainda.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {usuarios.map(u => (
+                                            <div key={u.id} className="flex items-center justify-between p-3 border rounded-lg gap-3">
+                                                <div className="flex flex-col gap-0.5 min-w-0">
+                                                    <span className="font-medium text-sm truncate">{u.nome}</span>
+                                                    <span className="text-xs text-muted-foreground truncate">{u.email}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <Badge variant={u.perfil === 'RECEPCIONISTA' ? 'default' : 'secondary'}>
+                                                        {u.perfil === 'RECEPCIONISTA' ? 'Recepcionista' : 'Equipe'}
+                                                    </Badge>
+                                                    <Switch
+                                                        checked={u.ativo}
+                                                        onCheckedChange={(checked) => handleToggleAtivo(u.id, checked)}
+                                                        title={u.ativo ? 'Desativar acesso' : 'Ativar acesso'}
+                                                    />
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Excluir membro?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação removerá permanentemente o acesso de <strong>{u.nome}</strong>. O usuário não conseguirá mais fazer login.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                    onClick={() => handleExcluir(u.id)}
+                                                                >
+                                                                    Excluir
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
+
+                        {/* Dialog para adicionar membro */}
+                        <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Adicionar membro</DialogTitle>
+                                    <DialogDescription>
+                                        Crie uma conta individual para o colaborador. Ele fará login em /login com e-mail e senha.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="novo-nome">Nome completo</Label>
+                                        <Input
+                                            id="novo-nome"
+                                            value={novoMembro.nome}
+                                            onChange={e => setNovoMembro(p => ({ ...p, nome: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="novo-email">E-mail</Label>
+                                        <Input
+                                            id="novo-email"
+                                            type="email"
+                                            value={novoMembro.email}
+                                            onChange={e => setNovoMembro(p => ({ ...p, email: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="novo-senha">Senha padrão</Label>
+                                        <Input
+                                            id="novo-senha"
+                                            type="text"
+                                            value={novoMembro.senha}
+                                            onChange={e => setNovoMembro(p => ({ ...p, senha: e.target.value }))}
+                                            placeholder="Mín. 6 caracteres"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="novo-perfil">Perfil</Label>
+                                        <Select
+                                            value={novoMembro.perfil}
+                                            onValueChange={v => setNovoMembro(p => ({ ...p, perfil: v as 'RECEPCIONISTA' | 'EQUIPE' }))}
+                                        >
+                                            <SelectTrigger id="novo-perfil">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="RECEPCIONISTA">Recepcionista</SelectItem>
+                                                <SelectItem value="EQUIPE">Equipe (Limpeza / Manutenção)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setAddMemberOpen(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button type="button" onClick={handleCriarMembro} disabled={addingMember}>
+                                        {addingMember && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Criar conta
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </TabsContent>
 
                     {/* TAB 5: Fiscal */}

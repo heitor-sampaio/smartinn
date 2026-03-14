@@ -1,5 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth'
 import {
     getDashboardMetrics,
     getDailyOperations,
@@ -13,12 +12,7 @@ import { RoomStatusBar } from './room-status-bar'
 import { MonthlyFinancial } from './monthly-financial'
 
 export default async function DashboardPage() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-        redirect('/login')
-    }
+    await requireRole(['ADMIN', 'RECEPCIONISTA'])
 
     const [
         metrics,

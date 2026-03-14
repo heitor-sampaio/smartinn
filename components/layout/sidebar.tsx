@@ -8,32 +8,33 @@ import {
     Users,
     CalendarDays,
     Settings,
-    LogOut,
     ClipboardList,
     CircleDollarSign,
     LineChart,
     Package,
-    BedDouble
+    BedDouble,
+    HelpCircle
 } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
+import { PerfilUsuario } from '@prisma/client'
 
 export const NAVIGATION_LINKS = [
-    { text: 'Painel', href: '/dashboard', icon: LayoutDashboard },
-    { text: 'Reservas', href: '/dashboard/reservas', icon: CalendarDays },
-    { text: 'Indicadores', href: '/dashboard/indicadores', icon: LineChart },
-    { text: 'Hóspedes', href: '/dashboard/hospedes', icon: Users },
-    { text: 'Financeiro', href: '/dashboard/financeiro', icon: CircleDollarSign },
-    { text: 'Tarefas e Manutenção', href: '/dashboard/tarefas', icon: ClipboardList },
-    { text: 'Acomodações', href: '/dashboard/acomodacoes', icon: BedDouble },
-    { text: 'Produtos e Serviços', href: '/dashboard/produtos', icon: Package },
-    { text: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
+    { text: 'Painel', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPCIONISTA'] as PerfilUsuario[] },
+    { text: 'Reservas', href: '/dashboard/reservas', icon: CalendarDays, roles: ['ADMIN', 'RECEPCIONISTA'] as PerfilUsuario[] },
+    { text: 'Indicadores', href: '/dashboard/indicadores', icon: LineChart, roles: ['ADMIN'] as PerfilUsuario[] },
+    { text: 'Hóspedes', href: '/dashboard/hospedes', icon: Users, roles: ['ADMIN', 'RECEPCIONISTA'] as PerfilUsuario[] },
+    { text: 'Financeiro', href: '/dashboard/financeiro', icon: CircleDollarSign, roles: ['ADMIN'] as PerfilUsuario[] },
+    { text: 'Tarefas e Manutenção', href: '/dashboard/tarefas', icon: ClipboardList, roles: ['ADMIN', 'RECEPCIONISTA', 'EQUIPE'] as PerfilUsuario[] },
+    { text: 'Acomodações', href: '/dashboard/acomodacoes', icon: BedDouble, roles: ['ADMIN', 'RECEPCIONISTA'] as PerfilUsuario[] },
+    { text: 'Produtos e Serviços', href: '/dashboard/produtos', icon: Package, roles: ['ADMIN', 'RECEPCIONISTA'] as PerfilUsuario[] },
+    { text: 'Configurações', href: '/dashboard/configuracoes', icon: Settings, roles: ['ADMIN'] as PerfilUsuario[] },
+    { text: 'Ajuda', href: '/dashboard/ajuda', icon: HelpCircle, roles: ['ADMIN', 'RECEPCIONISTA', 'EQUIPE'] as PerfilUsuario[] },
 ]
 
-export function Sidebar() {
+export function Sidebar({ perfil }: { perfil: PerfilUsuario }) {
     const pathname = usePathname()
+    const links = NAVIGATION_LINKS.filter(l => l.roles.includes(perfil))
 
     return (
         <div className="hidden border-r bg-muted/40 md:flex md:flex-col min-h-screen">
@@ -51,7 +52,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1">
                 <nav className="grid items-start px-2 py-4 text-sm font-medium lg:px-4 gap-1">
-                    {NAVIGATION_LINKS.map((link) => {
+                    {links.map((link) => {
                         const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
                         return (
                             <Link

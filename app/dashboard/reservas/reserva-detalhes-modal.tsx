@@ -8,9 +8,10 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Copy, DoorOpen, Link2, Loader2, ThumbsUp, Trash2, UserX } from 'lucide-react'
+import { CheckCircle2, Copy, DoorOpen, Link2, Loader2, RefreshCw, ThumbsUp, Trash2, UserX } from 'lucide-react'
 import { deleteExtraReserva } from '@/actions/reservas'
 import { gerarTokenCheckin } from '@/actions/checkin-virtual'
+import { reenviarFnrh } from '@/actions/fnrh'
 import { toast } from 'sonner'
 import {
     Accordion,
@@ -48,6 +49,18 @@ export function ReservaDetalhesModal({
     const [checkInToken, setCheckInToken] = useState<string | null>(reserva?.checkInToken ?? null)
     const [gerandoToken, setGerandoToken] = useState(false)
     const [extraParaExcluir, setExtraParaExcluir] = useState<{ id: string; descricao: string } | null>(null)
+    const [reenviandoFnrh, setReenviandoFnrh] = useState(false)
+
+    const handleReenviarFnrh = async () => {
+        setReenviandoFnrh(true)
+        const res = await reenviarFnrh(reserva.id)
+        setReenviandoFnrh(false)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success('FNRH reenviada! Atualize a página para ver o novo status.')
+        }
+    }
 
     const checkinUrl = checkInToken
         ? `${typeof window !== 'undefined' ? window.location.origin : ''}/check-in/${checkInToken}`
@@ -113,8 +126,36 @@ export function ReservaDetalhesModal({
                             <h3 className="text-xl font-bold text-primary">{reserva.hospede.nome}</h3>
                             <p className="text-sm text-muted-foreground mt-1">CPF: {reserva.hospede.cpf || '—'} | Tel: {reserva.hospede.telefone || '—'}</p>
                         </div>
-                        <div>
+                        <div className="flex flex-col items-end gap-2">
                             {getStatusBadge(reserva.status)}
+                            {reserva.status === 'CHECKIN_FEITO' && (
+                                <div className="flex items-center gap-2">
+                                    {reserva.fnrhStatus === 'ENVIADO' && (
+                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">FNRH Enviada</Badge>
+                                    )}
+                                    {(reserva.fnrhStatus === 'PENDENTE' || !reserva.fnrhStatus) && (
+                                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">FNRH Pendente</Badge>
+                                    )}
+                                    {reserva.fnrhStatus === 'ERRO' && (
+                                        <>
+                                            <Badge variant="destructive" className="text-xs">FNRH com Erro</Badge>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 text-xs"
+                                                onClick={handleReenviarFnrh}
+                                                disabled={reenviandoFnrh}
+                                            >
+                                                {reenviandoFnrh
+                                                    ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                                    : <RefreshCw className="h-3 w-3 mr-1" />
+                                                }
+                                                Reenviar FNRH
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

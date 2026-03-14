@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Menu, LogOut } from 'lucide-react'
 import { NAVIGATION_LINKS } from './sidebar'
+import { PerfilUsuario } from '@prisma/client'
 import { signOut } from '@/actions/auth'
 
 import { Button } from '@/components/ui/button'
@@ -21,8 +22,9 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
-export function Header({ email, alerts }: { email?: string; alerts: AlertsData }) {
+export function Header({ email, alerts, perfil }: { email?: string; alerts: AlertsData; perfil: PerfilUsuario }) {
     const pathname = usePathname()
+    const links = NAVIGATION_LINKS.filter(l => l.roles.includes(perfil))
 
     const getInitials = (email?: string) => {
         if (!email) return 'SI'
@@ -59,7 +61,7 @@ export function Header({ email, alerts }: { email?: string; alerts: AlertsData }
 
                         {/* Links de navegação */}
                         <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
-                            {NAVIGATION_LINKS.map((link) => {
+                            {links.map((link) => {
                                 const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
                                 return (
                                     <SheetClose asChild key={link.href}>

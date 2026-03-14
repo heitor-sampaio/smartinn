@@ -1,3 +1,4 @@
+import { requireRole } from '@/lib/auth'
 import { getHospedes } from '@/actions/hospedes'
 import { HospedesClient } from './hospedes-client'
 
@@ -6,6 +7,8 @@ export const metadata = {
 }
 
 export default async function HospedesPage() {
+    await requireRole(['ADMIN', 'RECEPCIONISTA'])
+
     const { data, error } = await getHospedes()
 
     if (error) {

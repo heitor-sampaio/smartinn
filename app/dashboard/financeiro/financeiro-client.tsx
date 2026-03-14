@@ -36,19 +36,30 @@ import { ptBR } from 'date-fns/locale'
 import { deleteLancamento } from '@/actions/financeiro'
 import { toast } from 'sonner'
 import { LancamentoForm } from './lancamento-form'
+import { createClient } from '@/utils/supabase/client'
 
 interface FinanceiroProps {
     initialData: any[]
     mesAtual: number
     anoAtual: number
+    pousadaId?: string
 }
 
-export function FinanceiroClient({ initialData, mesAtual, anoAtual }: FinanceiroProps) {
+export function FinanceiroClient({ initialData, mesAtual, anoAtual, pousadaId }: FinanceiroProps) {
     const router = useRouter()
     const [lancamentos, setLancamentos] = useState(initialData)
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const [formaPagamentoFiltro, setFormaPagamentoFiltro] = useState<string>('TODAS')
+
+    useEffect(() => {
+        if (!pousadaId) return
+        const supabase = createClient()
+        const channel = supabase.channel(`pousada-${pousadaId}`)
+            .on('broadcast', { event: 'change' }, () => { router.refresh() })
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [pousadaId, router])
 
     // Sincroniza estado com Server Data novo via Server Action Revalidation
     useEffect(() => {

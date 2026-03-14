@@ -46,6 +46,7 @@ export function ReservaForm({
     initialData,
     hospedesList,
     acomodacoesList,
+    comodidades,
     onSuccess,
     onConfirmar,
     onCheckin,
@@ -56,6 +57,7 @@ export function ReservaForm({
     initialData?: any,
     hospedesList: any[],
     acomodacoesList: any[],
+    comodidades?: string[],
     onSuccess: () => void,
     onConfirmar?: (id: string) => void,
     onCheckin?: (id: string) => void,
@@ -89,8 +91,6 @@ export function ReservaForm({
     // Filtros de características
     const [filtroCaracteristicas, setFiltroCaracteristicas] = useState<string[]>([])
     const [filtroTipo, setFiltroTipo] = useState<string>('')
-
-    const CARACTERISTICAS = ['Ar condicionado', 'Aquecedor', 'Banheira', 'Cofre', 'Frigobar', 'Lareira', 'Microondas', 'Televisão', 'Vista panorâmica']
 
     const toggleCaracteristica = useCallback((item: string) => {
         setFiltroCaracteristicas(prev =>
@@ -379,7 +379,7 @@ export function ReservaForm({
 
                     {/* Filtro por características */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-muted/30 p-3 rounded-md border">
-                        {CARACTERISTICAS.map(item => (
+                        {(comodidades ?? []).map(item => (
                             <div key={item} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`filtro-${item}`}

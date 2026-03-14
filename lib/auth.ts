@@ -1,8 +1,10 @@
 'use server'
 
 import { cache } from 'react'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
+import { PerfilUsuario } from '@prisma/client'
 
 /**
  * Autenticação com cache por requisição usando React cache().
@@ -16,10 +18,11 @@ export const requireAuth = cache(async () => {
 
     const usuario = await prisma.usuario.findUnique({
         where: { supabaseId: user.id },
-        select: { id: true, pousadaId: true, perfil: true }
+        select: { id: true, pousadaId: true, perfil: true, ativo: true }
     })
 
-    if (!usuario) throw new Error(`Usuário não encontrado no sistema: supabaseId=${user.id}`)
+    if (!usuario) throw new Error('Usuário não encontrado no sistema.')
+    if (!usuario.ativo) throw new Error('Conta desativada')
 
     return {
         user,
@@ -28,3 +31,11 @@ export const requireAuth = cache(async () => {
         perfil: usuario.perfil
     }
 })
+
+export async function requireRole(allowed: PerfilUsuario[]) {
+    const auth = await requireAuth()
+    if (!allowed.includes(auth.perfil)) {
+        redirect(auth.perfil === 'EQUIPE' ? '/dashboard/tarefas' : '/dashboard')
+    }
+    return auth
+}
